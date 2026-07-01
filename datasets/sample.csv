@@ -1,0 +1,33 @@
+id,name,age,email,salary,department
+1,John Doe,25,john@gmail.com,45000,IT
+2,Alice Smith,30,alice@gmail.com,55000,HR
+3,Bob Johnson,22,bob@gmail.com,40000,Finance
+4,Emma Wilson,28,emma@gmail.com,62000,IT
+5,Michael Brown,35,michael@gmail.com,70000,Operations
+6,Sophia Davis,29,sophia@gmail.com,58000,Marketing
+7,James Miller,41,james@gmail.com,85000,Finance
+8,Olivia Garcia,24,olivia@gmail.com,47000,HR
+9,William Martinez,32,william@gmail.com,64000,IT
+10,Isabella Rodriguez,27,isabella@gmail.com,52000,Marketing
+11,Liam Anderson,31,liam@gmail.com,60000,Finance
+12,Mia Thomas,26,mia@gmail.com,49000,HR
+13,Noah Jackson,38,noah@gmail.com,78000,Operations
+14,Charlotte White,23,charlotte@gmail.com,43000,IT
+15,Ethan Harris,45,ethan@gmail.com,92000,Management
+16,Ava Martin,34,ava@gmail.com,68000,Finance
+17,Mason Thompson,29,mason@gmail.com,56000,Marketing
+18,Amelia Moore,33,amelia@gmail.com,65000,HR
+19,Lucas Taylor,21,lucas@gmail.com,39000,IT
+20,Harper Lee,28,harper@gmail.com,53000,Operations
+
+21,,24,user21@gmail.com,45000,IT
+22,Invalid Age,-10,user22@gmail.com,50000,HR
+23,High Age,150,user23@gmail.com,55000,Finance
+24,Missing Salary,27,user24@gmail.com,,Marketing
+25,Duplicate User,30,dup@gmail.com,60000,IT
+25,Duplicate User,30,dup@gmail.com,60000,IT
+26,Missing Email,29,,52000,HR
+27,Zero Salary,31,user27@gmail.com,0,Finance
+28,Negative Salary,35,user28@gmail.com,-5000,Operations
+29,Null Department,32,user29@gmail.com,61000,
+30,Normal User,28,user30@gmail.com,54000,Marketing

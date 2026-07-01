@@ -1,0 +1,38 @@
+{
+    "required_metadata": [
+        "dataset_name",
+        "owner",
+        "source",
+        "license",
+        "version",
+        "lineage",
+        "transformation_log"
+    ],
+    "weights": {
+        "schema": 20,
+        "completeness": 20,
+        "duplicates": 10,
+        "consistency": 15,
+        "metadata": 10,
+        "provenance": 15,
+        "integrity": 10
+    },
+    "risk_thresholds": {
+        "min_completeness_score": 90,
+        "max_duplicate_percentage": 5,
+        "min_schema_score": 90,
+        "min_provenance_score": 80,
+        "min_metadata_score": 80
+    },
+    "classification_thresholds": {
+        "trusted": 90,
+        "reliable": 75,
+        "review_required": 60
+    },
+    "integrity_boundaries": {
+        "age": {
+            "min": 0,
+            "max": 120
+        }
+    }
+}

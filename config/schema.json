@@ -1,0 +1,8 @@
+{
+    "columns": {
+        "id": "int64",
+        "name": "object",
+        "age": "int64",
+        "email": "object"
+    }
+}
