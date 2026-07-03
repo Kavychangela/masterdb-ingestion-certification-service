@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
-
 from models import CertificationRequest, ValidationRequest
 from services.artifact_store import ArtifactStore
 from services.certification_service import CertificationService
 from services.report_service import ReportService
 from services.validation_service import ValidationService
+
 
 
 app = FastAPI(
@@ -72,3 +72,4 @@ def get_report(dataset_id: str) -> dict:
         return report_service.get_report(dataset_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
