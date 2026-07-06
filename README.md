@@ -11,7 +11,6 @@ Canonical schemas, ontology, and runtime reasoning remain out of scope and
 are owned by MDU (Nupur) — see `MDU_INTERFACE_CONTRACT.md`.
 
 
-
 ## Scope
 
 
