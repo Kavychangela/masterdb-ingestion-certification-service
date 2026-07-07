@@ -3,18 +3,29 @@
 ## Owner Role
 
 MASTERDB Core Knowledge Platform Engineer — ingestion readiness, Knowledge
-Package Lifecycle, Provenance/Lineage consumption, and Retrieval Readiness
+Package Lifecycle, Provenance/Lineage consumption, Retrieval Readiness, and
+(this sprint) MASTERDB's runtime integration surface with MDU and TANTRA
 for the BHIV ecosystem.
 
 ## What This Service Does
 
 This service validates dataset packages, certifies ingestion eligibility,
-and now also owns the Knowledge Package Lifecycle (Dataset Registry),
-Knowledge Object/Provenance consumption, and Retrieval Readiness/Evidence
-that make MASTERDB a knowledge platform rather than only a validation
-boundary. All output is deterministic and replayable through persisted
-JSON records — validation/certification reports, package lifecycle
-history, knowledge object/lineage records, and retrieval evidence.
+owns the Knowledge Package Lifecycle (Dataset Registry), Knowledge
+Object/Provenance consumption, and Retrieval Readiness/Evidence, and now
+exposes those capabilities as ecosystem-reachable surfaces: a live MDU
+client with schema/provenance consumption and version negotiation, a
+MASTERDB <-> TANTRA runtime interface, and a Runtime Discovery API. All
+output is deterministic and replayable through persisted JSON records —
+validation/certification reports, package lifecycle history, knowledge
+object/lineage records, and retrieval evidence.
+
+**Status of this sprint's work**: code-complete for Phases 1–3 (MDU live
+client, TANTRA interface, Runtime Discovery) plus Phase 4 hardening (error
+contract, logging, replay/audit endpoints). **Not yet run against the real
+MDU service or executed as a test suite** — this was built in a sandbox
+with no outbound network access and none of `fastapi`/`httpx`/`pydantic`
+installed. Treat this as a reviewed, syntax-checked patch that still needs
+one real test-and-verify pass before merge. See "Before You Merge" below.
 
 ## How To Run
 
@@ -71,6 +82,24 @@ metadata is present but the package hasn't been marked `RETRIEVAL_READY`
 yet) should be treated as safe to retrieve from. `NOT_RETRIEVABLE` and
 `PARTIALLY_RETRIEVABLE` must not be surfaced to retrieval consumers.
 
+## Before You Merge
+
+1. `pip install -r requirements.txt && pytest` in a networked environment.
+   None of the tests in this sprint's diff (`test_mdu_contract_adapter.py`,
+   `test_runtime_discovery_service.py`, `test_tantra_interface_service.py`,
+   `test_audit_and_replay.py`) have been executed yet.
+2. Set `MDU_BASE_URL` / `MDU_API_KEY` and hit `GET /mdu/schema/<a real
+   dataset_id>` and `GET /mdu/provenance/<a real dataset_id>` against the
+   live service. Confirm the actual field names MDU returns — in
+   particular whether the schema payload uses `schema_version` or
+   `version` — and adjust the two `.get(...)` lookups in
+   `MDUContractAdapter.validate_schema_compatibility` if they don't match.
+3. Confirm with Nupur whether the `/provenance` endpoint really is the full
+   lineage contract (assumed here per the integration brief) or whether a
+   separate lineage endpoint is planned.
+4. Capture real screenshots/console output for the review packet once 1–3
+   are done — none are included yet; see `REVIEW_PACKET.md`.
+
 ## Files To Know
 
 - `main.py`: REST entrypoint only.
@@ -84,16 +113,24 @@ yet) should be treated as safe to retrieve from. `NOT_RETRIEVABLE` and
 - `services/knowledge_object_service.py`: Knowledge Object & Provenance
   Engine. Consumes MDU semantics through `MDUContractAdapter`; validates
   parent/child relationships and major-version schema compatibility.
-- `services/mdu_contract_adapter.py`: Placeholder consumption boundary for
-  MDU's not-yet-finalized contract. Update this file, not the service
-  logic, once MDU publishes the real contract.
+- `services/mdu_contract_adapter.py`: Consumption boundary for MDU's
+  contract. Live mode (via `MDUClient`) when `MDU_BASE_URL`/`MDU_API_KEY`
+  are set; permissive placeholder fallback otherwise. Update this file,
+  not the service logic, once MDU's semantics are confirmed.
+- `services/mdu_client.py`: The only module that knows MDU's base URL,
+  auth header, and endpoint paths. Pure transport — no interpretation.
 - `services/retrieval_readiness_service.py`: Retrieval Readiness & Evidence
   Service. Produces replayable `RetrievalEvidence`.
+- `services/tantra_interface_service.py`: MASTERDB <-> TANTRA runtime
+  interface façade (dataset registration, package discovery, retrieval
+  readiness, certification status, bundled runtime package lookup).
+- `services/runtime_discovery_service.py`: Deterministic filtered package
+  lookup (Phase 3), backed by `ArtifactStore.list_all()`.
 - `config/validation_rules.json`: Scoring and threshold rules.
 - `config/schema.json`: Dataset schema expectations.
-- `MDU_INTERFACE_CONTRACT.md`: Consumed contracts, required fields, version
-  compatibility rules, known gaps, and future extension points for the
-  MASTERDB <-> MDU integration.
+- `MDU_INTERFACE_CONTRACT.md`: Consumed contracts, live transport
+  configuration, required fields, version compatibility rules, known gaps,
+  and future extension points for the MASTERDB <-> MDU integration.
 
 ## Sample Artifacts
 
@@ -115,11 +152,9 @@ yet) should be treated as safe to retrieve from. `NOT_RETRIEVABLE` and
 - Once MDU finalizes its contract, update `MDUContractAdapter` and
   `MDU_INTERFACE_CONTRACT.md` together; `KnowledgeObjectService` should not
   need structural changes if the adapter seam is respected.
-- Runtime Discovery (service/tool discovery for downstream consumers) is
-  named in MASTERDB's responsibilities but not yet implemented as an
-  endpoint; `GET /packages/{package_id}` and `/retrieval` currently serve
-  that purpose informally. Flagged as a Known Gap in
-  `MDU_INTERFACE_CONTRACT.md`.
+- Runtime Discovery is now implemented (`GET /discovery/packages`,
+  `RuntimeDiscoveryService`). If TANTRA needs ranking/relevance on top of
+  the deterministic filter, that belongs in TANTRA, not here.
 
 ## Non-Goals
 

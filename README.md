@@ -5,10 +5,13 @@ Backend service for MASTERDB: deterministic dataset validation/certification
 Readiness runtime that turns certification into a usable knowledge platform.
 
 This repository started as a CSV integrity checker, became a validation and
-certification boundary, and now owns package identity, lifecycle state,
-lineage relationships, and retrieval eligibility for the BHIV ecosystem.
-Canonical schemas, ontology, and runtime reasoning remain out of scope and
-are owned by MDU (Nupur) — see `MDU_INTERFACE_CONTRACT.md`.
+certification boundary, then owned package identity, lifecycle state,
+lineage relationships, and retrieval eligibility for the BHIV ecosystem —
+and now exposes that platform as a live ecosystem capability: a real MDU
+client, a MASTERDB <-> TANTRA runtime interface, and a Runtime Discovery
+API, on top of the same lifecycle/lineage/retrieval logic. Canonical
+schemas, ontology, and runtime reasoning remain out of scope and are owned
+by MDU (Nupur) — see `MDU_INTERFACE_CONTRACT.md`.
 
 
 ## Scope
@@ -22,8 +25,13 @@ Owned by this  service:
 - Validation reports and audit artifacts
 - Knowledge Package Lifecycle (Dataset Registry)
 - Package Identity & Runtime Discovery
-- Knowledge Object / Provenance consumption (adapter boundary to MDU)
+- Knowledge Object / Provenance consumption (adapter boundary to MDU, live
+  when configured, placeholder-safe fallback otherwise)
 - Retrieval Readiness & Retrieval Evidence
+- MASTERDB <-> TANTRA Runtime Interface (`/tantra/*`)
+- Runtime Discovery API (`/discovery/packages`)
+- Replay consistency & audit completeness (`/packages/{id}/replay`,
+  `/packages/{id}/audit`)
 - REST API for ingestion pipelines and downstream retrieval consumers
 
 Out of scope (owned elsewhere):
@@ -57,11 +65,20 @@ flowchart LR
     ReportService --> Store
 
     RegistryService --> RegistryStore["registry_store/ (packages + lifecycle history)"]
-    KnowledgeObjectService --> MDUAdapter["MDUContractAdapter (placeholder)"]
+    KnowledgeObjectService --> MDUAdapter["MDUContractAdapter"]
+    MDUAdapter --> MDUClient["MDUClient (live HTTP or placeholder fallback)"]
     KnowledgeObjectService --> KOStore["knowledge_object_store/"]
     RetrievalService --> RegistryService
     RetrievalService --> KnowledgeObjectService
     RetrievalService --> EvidenceStore["retrieval_evidence_store/"]
+
+    TantraAPI["POST/GET /tantra/*"] --> TantraService["TantraInterfaceService"]
+    TantraService --> RegistryService
+    TantraService --> KnowledgeObjectService
+    TantraService --> RetrievalService
+    TantraService --> DiscoveryService["RuntimeDiscoveryService"]
+    DiscoveryAPI["GET /discovery/packages"] --> DiscoveryService
+    DiscoveryService --> RegistryService
 ```
 
 ## Package Lifecycle
@@ -129,6 +146,15 @@ The certification engine uses deterministic, auditable transitions:
 
 ```bash
 python -m pip install -r requirements.txt
+```
+
+To enable live MDU integration (Phase 1), set these environment variables
+before starting the app; without them, MDU-dependent endpoints degrade to
+the documented placeholder behavior rather than failing:
+
+```bash
+export MDU_BASE_URL="https://bhiv-mdu-api.onrender.com"
+export MDU_API_KEY="<the shared key>"
 ```
 
 ## Run API
@@ -204,6 +230,41 @@ Check retrieval readiness:
 curl http://127.0.0.1:8000/packages/<package_id>/retrieval
 ```
 
+## Ecosystem Integration Examples
+
+Check MDU schema compatibility for a registered package:
+
+```bash
+curl "http://127.0.0.1:8000/mdu/schema-compatibility/BHIV-DS-MARITIME-AIS-LIVE-001?local_schema_version=1.0"
+```
+
+Register a dataset via the TANTRA runtime interface:
+
+```bash
+curl -X POST http://127.0.0.1:8000/tantra/datasets/register \
+  -H "Content-Type: application/json" \
+  -d "{\"dataset_id\":\"BHIV-DS-MARITIME-AIS-LIVE-001\",\"dataset_version\":\"1.0\",\"schema_version\":\"1.0\",\"board\":\"maritime\",\"medium\":\"ais\",\"language\":\"en\",\"owner\":\"nupur\"}"
+```
+
+Runtime package lookup (bundled lifecycle + lineage + retrieval + certification):
+
+```bash
+curl http://127.0.0.1:8000/tantra/packages/<package_id>/runtime
+```
+
+Discover packages by board and lifecycle status:
+
+```bash
+curl "http://127.0.0.1:8000/discovery/packages?board=maritime&status=CERTIFIED"
+```
+
+Check replay consistency and audit completeness:
+
+```bash
+curl http://127.0.0.1:8000/packages/<package_id>/replay
+curl http://127.0.0.1:8000/packages/<package_id>/audit
+```
+
 See `API_DOCUMENTATION.md` for the full endpoint reference.
 
 ## Test
@@ -215,7 +276,17 @@ python -m pytest
 Current suite covers validation artifacts, certification success/rejection
 cases, REST API responses, package lifecycle transitions (legal/illegal),
 replay validation, lineage/version compatibility, retrieval readiness
-rules, and the new registry API endpoints.
+rules, registry API endpoints, MDU version-negotiation logic
+(`test_mdu_contract_adapter.py`), Runtime Discovery filtering/ordering
+(`test_runtime_discovery_service.py`), the TANTRA façade
+(`test_tantra_interface_service.py`), and audit-completeness/replay
+reporting (`test_audit_and_replay.py`).
+
+**Note on execution:** the tests above were written and syntax-checked but
+could not be executed in the sandbox this was built in (no network access
+to install `fastapi`/`httpx`/`pydantic`, and no reachable MDU endpoint).
+Run `pip install -r requirements.txt && pytest` in a networked environment
+before merging.
 
 ## Project Structure
 
@@ -225,7 +296,9 @@ datasets/               Sample valid and invalid dataset packages
 engines/                Scoring, risk, classification, recommendation engines
 profiling/              Dataset profiling
 services/               Service layer: validation, certification, registry,
-                        knowledge object/provenance, retrieval readiness
+                        knowledge object/provenance, retrieval readiness,
+                        MDU client + contract adapter, TANTRA runtime
+                        interface, runtime discovery
 tests/                  Unit and integration tests
 validators/             Deterministic validation checks
 main.py                 FastAPI entrypoint only

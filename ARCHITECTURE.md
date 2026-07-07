@@ -5,10 +5,13 @@
 MASTERDB is the canonical knowledge platform runtime for the BHIV ecosystem.
 It owns dataset validation/certification, Knowledge Package Lifecycle,
 Dataset Registry, Package Identity, Knowledge Object/Provenance consumption,
-and Retrieval Readiness/Evidence. It does not own canonical schemas,
-ontology, knowledge authority, governance, runtime reasoning, embeddings, or
-vector databases — those are owned by MDU (Nupur) and downstream reasoning
-systems. See `MDU_INTERFACE_CONTRACT.md` for the consumption boundary.
+Retrieval Readiness/Evidence, and — as of this integration sprint — the
+runtime-facing surfaces that make those capabilities reachable by MDU and
+TANTRA (`MDUClient`, `TantraInterfaceService`, `RuntimeDiscoveryService`). It
+does not own canonical schemas, ontology, knowledge authority, governance,
+runtime reasoning, embeddings, or vector databases — those are owned by MDU
+(Nupur) and downstream reasoning systems (TANTRA). See
+`MDU_INTERFACE_CONTRACT.md` for the consumption boundary.
 
 ## Components
 
@@ -33,19 +36,60 @@ flowchart TB
     P3["POST /packages/deprecate"] --> R
     P4["GET /packages/{package_id}"] --> R
     P5["GET /packages/{package_id}/history"] --> R
+    P5b["GET /packages/{package_id}/replay"] --> R
+    P5c["GET /packages/{package_id}/audit"] --> R
     R --> RS["ArtifactStore (registry_store/)"]
 
     P6["POST /packages/{package_id}/knowledge-object"] --> KO["KnowledgeObjectService"]
     P7["GET /packages/{package_id}/lineage"] --> KO
     KO --> R
-    KO --> ADAPT["MDUContractAdapter (placeholder)"]
+    KO --> ADAPT["MDUContractAdapter"]
     KO --> KOS["ArtifactStore (knowledge_object_store/)"]
+    ADAPT --> MDUC["MDUClient (live HTTP, or placeholder fallback)"]
+    MDUC -.->|"MDU_BASE_URL / MDU_API_KEY"| MDU[("MDU service\n(Nupur, external)")]
 
     P8["GET /packages/{package_id}/retrieval"] --> RR["RetrievalReadinessService"]
     RR --> R
     RR --> KO
     RR --> RES["ArtifactStore (retrieval_evidence_store/)"]
+
+    T1["POST /tantra/datasets/register"] --> TIS["TantraInterfaceService"]
+    T2["GET /tantra/packages/{id}/retrieval-readiness"] --> TIS
+    T3["GET /tantra/certification/{dataset_id}"] --> TIS
+    T4["GET /tantra/packages/{id}/runtime"] --> TIS
+    TIS --> R
+    TIS --> KO
+    TIS --> RR
+    TIS --> F
+    TIS --> DISC["RuntimeDiscoveryService"]
+
+    P9["GET /discovery/packages"] --> DISC
+    DISC --> R
 ```
+
+## MDU Live Integration & TANTRA/Discovery Surfaces (this sprint)
+
+- `MDUClient` (`services/mdu_client.py`) is the only module aware of MDU's
+  base URL, auth header, and paths; configured via `MDU_BASE_URL` /
+  `MDU_API_KEY` environment variables. `MDUContractAdapter` uses it for
+  live schema/provenance fetches and degrades to the original permissive
+  placeholder if MDU is unconfigured/unreachable — package registration
+  and lineage reads never hard-fail purely because MDU is down.
+- `TantraInterfaceService` (`services/tantra_interface_service.py`) is the
+  single façade TANTRA integrates against: dataset registration, package
+  discovery, retrieval-readiness queries, certification-status queries,
+  and a bundled runtime package lookup. It adds no new ownership — every
+  method delegates to a service MASTERDB already owns.
+- `RuntimeDiscoveryService` (`services/runtime_discovery_service.py`) is a
+  read-only, deterministically-ordered filter over the package registry
+  (by `package_id`, `dataset_id`, `board`, `medium`, `version`, lifecycle
+  `status`) — no ranking or relevance scoring, which stays out of scope.
+- Phase 4 hardening: a uniform `{"error": {...}}` contract for every error
+  response (see `API_DOCUMENTATION.md`), structured logging on registration/
+  transitions/MDU calls, and two new endpoints —
+  `GET /packages/{id}/replay` and `GET /packages/{id}/audit` — that make
+  replay-consistency and audit-completeness independently queryable rather
+  than only exercised internally by `RetrievalReadinessService`.
 
 ## Data Flow — Validation & Certification
 
@@ -155,5 +199,16 @@ flowchart LR
   replayable evidence.
 - Reports/records are persisted under `reports/`, `registry_store/`,
   `knowledge_object_store/`, and `retrieval_evidence_store/` respectively.
-- API responses are JSON-only.
+- `RuntimeDiscoveryService` results are always sorted by `package_id`, so
+  identical filter queries against identical on-disk state return
+  byte-for-byte identical responses.
+- API responses are JSON-only, and every error response uses the uniform
+  `{"error": {"type", "message", "path"}}` contract described in
+  `API_DOCUMENTATION.md`.
+- **Live-MDU caveat**: `MDUContractAdapter`'s schema-compatibility and
+  provenance/lineage responses are only as deterministic as MDU's own
+  service — when live, MASTERDB passes through whatever MDU currently
+  returns rather than caching a frozen snapshot. Replay of a package's
+  *own* lifecycle history remains fully deterministic regardless of MDU's
+  availability.
 

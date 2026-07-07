@@ -1,0 +1,15 @@
+{
+    "knowledge_object_id": "kobj-88c23630c251",
+    "knowledge_hash": "16434cbfef95bfc0cc7639644d56aa9cebe7f5c611b367f9955ce03d147cdc41",
+    "package_id": "pkg-fdcb2e94e523",
+    "schema_version": "2",
+    "parent_package": null,
+    "child_packages": [],
+    "source_reference": "s3://bucket/source.csv",
+    "lineage_reference": null,
+    "derivation_path": [
+        "ingest",
+        "clean"
+    ],
+    "created_at": "2026-07-07T07:18:51.266142+00:00"
+}

@@ -9,6 +9,7 @@ This module does not perform validation/certification scoring itself (that
 remains ValidationService / CertificationService's job); it is the system of
 record for *where a package sits* in its lifecycle and *why* it moved there.
 """
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -20,6 +21,8 @@ from models import (
     PackageTransition,
 )
 from services.artifact_store import ArtifactStore
+
+logger = logging.getLogger("masterdb")
 
 
 class InvalidTransitionError(ValueError):
@@ -68,6 +71,10 @@ class PackageRegistryService:
             actor=actor,
         )
         package.history.append(transition)
+        logger.info(
+            "package registered package_id=%s dataset_id=%s actor=%s",
+            package.package_id, dataset_id, actor,
+        )
         return self._save(package)
 
     def promote(
@@ -95,6 +102,10 @@ class PackageRegistryService:
         package.status = to_status
         package.updated_at = datetime.now(timezone.utc).isoformat()
         package.history.append(transition)
+        logger.info(
+            "package transitioned package_id=%s %s -> %s actor=%s",
+            package_id, current_status.value, to_status.value, actor,
+        )
         return self._save(package)
 
     def deprecate(self, package_id: str, actor: str, reason: str) -> KnowledgePackage:
@@ -139,6 +150,58 @@ class PackageRegistryService:
                 f"{replayed_status.value if replayed_status else 'NONE'}."
             )
         return replayed_status
+
+    def audit_completeness(self, package_id: str) -> Dict[str, object]:
+        """
+        Phase 4 — audit completeness check.
+
+        Verifies the package's history is a well-formed audit trail: a
+        single root transition (from_status=None), every transition
+        carrying a non-empty actor/reason/timestamp, and monotonically
+        non-decreasing timestamps. Returns a report rather than raising, so
+        callers (e.g. a /audit endpoint) can surface partial problems
+        instead of an opaque failure.
+        """
+        package = self.get(package_id)
+        issues: List[str] = []
+
+        if not package.history:
+            issues.append("history is empty.")
+        else:
+            roots = [t for t in package.history if t.from_status is None]
+            if len(roots) != 1:
+                issues.append(f"expected exactly 1 root transition (from_status=None), found {len(roots)}.")
+            if package.history[0].from_status is not None:
+                issues.append("first transition in history is not the root transition.")
+
+            previous_timestamp: Optional[str] = None
+            for transition in package.history:
+                if not transition.actor:
+                    issues.append(f"transition {transition.transition_id} is missing an actor.")
+                if not transition.reason:
+                    issues.append(f"transition {transition.transition_id} is missing a reason.")
+                if previous_timestamp and transition.timestamp < previous_timestamp:
+                    issues.append(
+                        f"transition {transition.transition_id} timestamp out of order."
+                    )
+                previous_timestamp = transition.timestamp
+
+        replay_consistent = True
+        replay_error: Optional[str] = None
+        try:
+            self.replay(package_id)
+        except InvalidTransitionError as exc:
+            replay_consistent = False
+            replay_error = str(exc)
+
+        return {
+            "package_id": package_id,
+            "complete": not issues,
+            "issues": issues,
+            "replay_consistent": replay_consistent,
+            "replay_error": replay_error,
+            "transition_count": len(package.history),
+        }
 
     # -- internal ------------------------------------------------------------
 

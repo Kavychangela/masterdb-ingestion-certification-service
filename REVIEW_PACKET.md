@@ -2,29 +2,49 @@
 
 ## Summary
 
-This sprint converges MASTERDB from a validation/certification boundary
-into the canonical knowledge platform for the BHIV ecosystem. Added the
-Knowledge Package Lifecycle Manager / Dataset Registry, the Knowledge
-Object & Provenance Engine (consuming MDU semantics through a placeholder
-adapter), and the Retrieval Readiness & Evidence Service, plus the
-expanded Registry API, tests, and documentation this requires.
+This sprint converges MASTERDB from an isolated backend into an ecosystem
+capability: a live MDU client with contract validation/version negotiation
+(Phase 1), a MASTERDB <-> TANTRA runtime interface (Phase 2), a Runtime
+Discovery API (Phase 3), and Phase 4 hardening (uniform error contract,
+structured logging, replay-consistency/audit-completeness endpoints) — on
+top of the existing Knowledge Package Lifecycle, Knowledge Object/Provenance
+consumption, and Retrieval Readiness services from the prior sprint.
 
-## Implemented — This Sprint
+## Implemented — This Sprint (Ecosystem Integration)
 
-- `PackageRegistryService` (Dataset Registry, lifecycle transitions,
-  history, replay)
-- `KnowledgeObjectService` (Knowledge Object / Provenance, lineage,
-  parent/child validation, version compatibility)
-- `MDUContractAdapter` (placeholder consumption boundary for the
-  not-yet-finalized MDU contract)
-- `RetrievalReadinessService` (retrieval rule evaluation, replayable
-  `RetrievalEvidence`, corrective actions)
-- 7 required Registry API endpoints + 1 supporting endpoint
-  (`POST /packages/{package_id}/knowledge-object`)
-- New unit + API integration tests for all of the above
-- `MDU_INTERFACE_CONTRACT.md` (Phase 5 deliverable)
-- Updated `README.md`, `ARCHITECTURE.md`, `API_DOCUMENTATION.md`,
-  `HANDOVER.md`
+- `MDUClient` (`services/mdu_client.py`) — live HTTP client for MDU's
+  schema/provenance/canonical/discovery endpoints, configured via
+  `MDU_BASE_URL` / `MDU_API_KEY`.
+- `MDUContractAdapter` upgraded with `fetch_schema_contract`,
+  `fetch_provenance_contract`, `validate_schema_compatibility`, and a
+  deterministic `negotiate_version` rule (exact match / minor-version
+  drift / major-version mismatch), with permissive placeholder fallback
+  when MDU is unreachable.
+- `KnowledgeObjectService.lineage()` now consumes MDU's live provenance
+  contract (tagged `mdu_provenance`, source `mdu-live` vs `unavailable`)
+  alongside MASTERDB's own parent/child walk.
+- `TantraInterfaceService` (`services/tantra_interface_service.py`) — the
+  single façade TANTRA integrates against: dataset registration, package
+  discovery, retrieval-readiness queries, certification-status queries,
+  bundled runtime package lookup.
+- `RuntimeDiscoveryService` (`services/runtime_discovery_service.py`) +
+  `ArtifactStore.list_all()` — deterministic filtered package discovery by
+  `package_id`/`dataset_id`/`board`/`medium`/`version`/`status`.
+- Phase 4 hardening: uniform `{"error": {...}}` contract via global FastAPI
+  exception handlers, structured logging (registration, transitions, MDU
+  requests), `PackageRegistryService.audit_completeness()`, and two new
+  endpoints — `GET /packages/{id}/replay`, `GET /packages/{id}/audit`.
+- 9 new endpoints: `/mdu/status`, `/mdu/schema/{id}`,
+  `/mdu/provenance/{id}`, `/mdu/schema-compatibility/{id}`,
+  `/tantra/datasets/register`, `/tantra/packages/{id}/retrieval-readiness`,
+  `/tantra/certification/{id}`, `/tantra/packages/{id}/runtime`,
+  `/discovery/packages`, plus `/packages/{id}/replay` and
+  `/packages/{id}/audit` (11 total).
+- New tests: `test_mdu_contract_adapter.py`,
+  `test_runtime_discovery_service.py`, `test_tantra_interface_service.py`,
+  `test_audit_and_replay.py`.
+- `MDU_INTERFACE_CONTRACT.md`, `README.md`, `ARCHITECTURE.md`,
+  `API_DOCUMENTATION.md`, `HANDOVER.md` all updated for the above.
 
 ## Implemented — Prior Sprint (unchanged this round)
 
@@ -59,6 +79,27 @@ MASTERDB Registry (new):
 - `POST /packages/{package_id}/knowledge-object` (supporting endpoint, not
   in the original 7 but required to populate lineage for meaningful
   retrieval assessments)
+- `GET /packages/{package_id}/replay` (new — Phase 4)
+- `GET /packages/{package_id}/audit` (new — Phase 4)
+
+MDU Integration (new — Phase 1):
+
+- `GET /mdu/status`
+- `GET /mdu/schema/{dataset_id}`
+- `GET /mdu/provenance/{dataset_id}`
+- `GET /mdu/schema-compatibility/{dataset_id}?local_schema_version=...`
+
+TANTRA Runtime Interface (new — Phase 2):
+
+- `POST /tantra/datasets/register`
+- `GET /tantra/packages/{package_id}/retrieval-readiness`
+- `GET /tantra/certification/{dataset_id}`
+- `GET /tantra/packages/{package_id}/runtime`
+
+Runtime Discovery (new — Phase 3):
+
+- `GET /discovery/packages` (filterable by `package_id`, `dataset_id`,
+  `board`, `medium`, `version`, `status`)
 
 ## Certification Rules
 
@@ -110,22 +151,50 @@ four while lifecycle status is `RETRIEVAL_READY` yields
 
 ## Test Evidence
 
-**This environment has no network access, so `fastapi`/`pydantic` could not
-be installed here to execute the suite.** All new modules were syntax
-checked with `python -m py_compile` and reviewed line-by-line against the
-existing service's established patterns (which already depend on the same
-libraries per `requirements.txt`). Run this in an environment with
-dependencies installed to get real pass/fail results:
+**This environment has no network access, so `fastapi`/`httpx`/`pydantic`
+could not be installed here to execute any test suite.** All new modules
+(this sprint and prior) were syntax checked with `python -m py_compile` and
+reviewed line-by-line against the existing service's established patterns.
+Pure-Python logic that doesn't depend on the missing packages —
+`MDUContractAdapter.negotiate_version`'s branching — was additionally
+hand-verified by running an isolated copy of the function directly:
+
+```
+negotiate_version("2.1", "2.1")  -> compatible=True,  exact_match
+negotiate_version("2.1", "2.4")  -> compatible=True,  minor_version_drift
+negotiate_version("1.9", "2.0")  -> compatible=False, major_version_mismatch
+negotiate_version("1.0", "")     -> compatible=False, unknown
+```
+
+Run this in an environment with dependencies installed for real pass/fail
+results, including against the live MDU API:
 
 ```bash
 python -m pip install -r requirements.txt
+export MDU_BASE_URL="https://bhiv-mdu-api.onrender.com"
+export MDU_API_KEY="<the shared key>"
 python -m pytest
+uvicorn main:app --reload
+# then exercise /mdu/*, /tantra/*, /discovery/packages by hand or via curl
 ```
 
-Expected new test files: `tests/test_package_registry_service.py`,
+Expected test files (prior sprint): `tests/test_package_registry_service.py`,
 `tests/test_knowledge_object_service.py`,
-`tests/test_retrieval_readiness_service.py`, `tests/test_registry_api.py`,
-in addition to the pre-existing suite.
+`tests/test_retrieval_readiness_service.py`, `tests/test_registry_api.py`.
+
+Expected test files (this sprint): `tests/test_mdu_contract_adapter.py`,
+`tests/test_runtime_discovery_service.py`,
+`tests/test_tantra_interface_service.py`, `tests/test_audit_and_replay.py`.
+
+## Evidence Not Included (and why)
+
+The task brief asks for runtime screenshots, API screenshots, and
+console/log evidence under `/review_packets/`. None of that is included
+here, deliberately: producing screenshots of a server that was never
+actually started, or console output that was never actually printed, would
+be fabricated evidence, not real evidence. Once you run the commands above
+in a networked environment, capture that real output and it can be added
+here.
 
 ## Risk Notes
 
@@ -147,6 +216,18 @@ in addition to the pre-existing suite.
   validation can be added behind `ValidationService`.
 - Test suite could not be executed in this sandbox (no network to install
   dependencies) — see Test Evidence above.
+- **The MDU client has never been run against the real MDU service.** Field
+  names it expects (`schema_version`/`version`) are a best guess from the
+  documented endpoint list, not a confirmed response schema. Verify before
+  relying on `/mdu/schema-compatibility/*` in production.
+- `KnowledgeObjectService.lineage()`'s `mdu_provenance` field assumes MDU's
+  `/provenance` endpoint doubles as the lineage contract, per the
+  integration brief's own labeling ("Provenance chain (lineage contract)").
+  Confirm with Nupur that no separate lineage endpoint is planned.
+- The uniform error contract (`{"error": {...}}`) changes the shape of
+  every error response versus the prior `{"detail": ...}` FastAPI default.
+  No existing test asserted on that shape, but any external caller that
+  parses `detail` directly will need to switch to `error.message`.
 
 ## Reviewer Checklist
 
@@ -165,6 +246,17 @@ in addition to the pre-existing suite.
   both `RETRIEVAL_READY` lifecycle status and registered lineage.
 - Confirm `KnowledgeObjectService` does not redefine Knowledge Object,
   Provenance, or Lineage semantics beyond the documented placeholder.
+- Confirm `MDUClient` never appears anywhere outside
+  `services/mdu_client.py` (single seam for MDU's base URL/paths/auth).
+- Confirm every MDU-dependent code path degrades to a flagged placeholder
+  instead of raising when MDU is unconfigured/unreachable.
+- Confirm `TantraInterfaceService` adds no new ownership — every method is
+  a direct delegation to an existing service.
+- Confirm `/discovery/packages` results are deterministically ordered.
+- Confirm the new `{"error": {...}}` contract is acceptable to any existing
+  external caller before merging (see Risk Notes).
 - Run `python -m pip install -r requirements.txt && python -m pytest` in a
   networked environment before merging, since it could not be run here.
+- Run the live MDU verification steps in "Evidence Not Included" above and
+  attach real output before considering Phase 5/6 complete.
 

@@ -103,6 +103,8 @@ class KnowledgeObjectService:
 
     def lineage(self, package_id: str) -> Dict[str, Any]:
         knowledge_object = self.get_by_package(package_id)
+        mdu_provenance = self._consume_mdu_provenance(package_id)
+
         if knowledge_object is None:
             return {
                 "package_id": package_id,
@@ -110,6 +112,7 @@ class KnowledgeObjectService:
                 "ancestors": [],
                 "descendants": [],
                 "known_gaps": self.mdu_adapter.known_gaps(),
+                "mdu_provenance": mdu_provenance,
             }
 
         ancestors: List[str] = []
@@ -136,7 +139,36 @@ class KnowledgeObjectService:
             "ancestors": ancestors,
             "descendants": knowledge_object.child_packages,
             "known_gaps": self.mdu_adapter.known_gaps(),
+            "mdu_provenance": mdu_provenance,
         }
+
+    def _consume_mdu_provenance(self, package_id: str) -> Dict[str, Any]:
+        """
+        Phase 1 — live lineage/provenance contract consumption.
+
+        MDU's `/provenance` endpoint is documented as the lineage contract
+        (there is no separate lineage endpoint). This looks up the
+        package's `dataset_id` via the registry (MASTERDB-owned identity)
+        and passes it straight through to MDU (MDU-owned semantics) without
+        reinterpreting it. Always degrades gracefully — a missing/offline
+        MDU never breaks a lineage read that MASTERDB can otherwise answer
+        from its own parent/child pointers.
+        """
+        if not self.mdu_adapter.is_live():
+            return {"source": "unavailable", "reason": "MDU not configured."}
+        try:
+            package = self.registry.get(package_id)
+        except PackageNotFoundError:
+            return {"source": "unavailable", "reason": "package not found in registry."}
+        try:
+            provenance = self.mdu_adapter.fetch_provenance_contract(package.dataset_id)
+            return {"source": "mdu-live", "dataset_id": package.dataset_id, "provenance": provenance}
+        except Exception as exc:  # noqa: BLE001 - MDU failures must never break lineage reads
+            return {
+                "source": "unavailable",
+                "dataset_id": package.dataset_id,
+                "reason": f"MDU provenance fetch failed: {exc}",
+            }
 
     # -- internal -------------------------------------------------------------
 

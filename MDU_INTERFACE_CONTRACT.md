@@ -1,12 +1,51 @@
 # MASTERDB <-> MDU Interface Contract v1
 
-**Status: DRAFT / PLACEHOLDER.** This document records what MASTERDB
-currently assumes about MDU-owned contracts (Knowledge Object, Provenance,
-Lineage, canonical schema). It is written from the MASTERDB side only and
-is intended as the starting point for joint sign-off with Nupur (MDU
-owner), not as a finalized specification. MASTERDB does not redefine any of
-the concepts below — it documents its current *consumption* of them so the
-seam is explicit and auditable.
+**Status: DRAFT.** Transport (Phase 1) is now live — MASTERDB can reach
+MDU's real endpoints via `services/mdu_client.py` / `MDUContractAdapter`.
+Semantics (field shapes, identity ownership, versioning policy) are still
+**pending joint sign-off with Nupur** and remain placeholder assumptions
+below until confirmed. MASTERDB does not redefine any of the concepts
+below — it documents its current *consumption* of them so the seam is
+explicit and auditable.
+
+## Live Transport (Phase 1)
+
+`MDUClient` (`services/mdu_client.py`) is the only module aware of MDU's
+base URL, auth header, and paths. Configure it via environment variables —
+credentials are never hardcoded:
+
+```
+MDU_BASE_URL=https://bhiv-mdu-api.onrender.com
+MDU_API_KEY=<the shared key>
+```
+
+Endpoints it calls, mapped 1:1 to what MDU publishes:
+
+| MASTERDB adapter method         | MDU endpoint                                          |
+|----------------------------------|--------------------------------------------------------|
+| `fetch_schema_contract`          | `GET /api/v1/schemas/dataset/{dataset_id}`             |
+| `fetch_provenance_contract`      | `GET /api/v1/datasets/{dataset_id}/provenance`         |
+| `fetch_canonical_dataset`        | `GET /api/v1/datasets/canonical/{dataset_id}`          |
+| (client) `validate_all_provenance` | `GET /api/v1/discovery/provenance/validate-all`      |
+| (client) `get_discovery_summary`   | `GET /api/v1/discovery/summary`                      |
+
+Exposed over HTTP for ops visibility at `GET /mdu/status`,
+`GET /mdu/schema/{dataset_id}`, `GET /mdu/provenance/{dataset_id}`, and
+`GET /mdu/schema-compatibility/{dataset_id}?local_schema_version=...`.
+
+If MDU is unconfigured or unreachable, `validate_schema_compatibility`
+degrades to the placeholder (permissive, flagged) rule below rather than
+hard-failing package registration — MASTERDB should never go down purely
+because MDU is temporarily unavailable.
+
+**Not yet verified against a live response:** this client was built and
+unit-tested against the documented endpoint *shapes*, but could not be
+exercised against the actual running MDU service from the sandbox this was
+built in (no outbound network access there). Before merging, run it against
+the real `MDU_BASE_URL` in a networked environment and confirm the actual
+JSON field names (`schema_version` vs `version`, etc.) match what
+`validate_schema_compatibility` expects — adjust the two `.get(...)` lookups
+in `MDUContractAdapter.validate_schema_compatibility` if they don't.
 
 ## Ownership
 
@@ -71,10 +110,9 @@ requirements, or a compatibility matrix).
    pending MDU's real policy.
 4. No confirmed schema for `lineage_reference` or `derivation_path` exists
    yet; both are currently unstructured.
-5. "Runtime Discovery," listed under MASTERDB's responsibilities in the
-   sprint brief, does not yet have a dedicated endpoint; `GET
-   /packages/{package_id}` and `GET /packages/{package_id}/retrieval` serve
-   this informally today.
+5. ~~"Runtime Discovery" does not yet have a dedicated endpoint~~ — resolved:
+   see `GET /discovery/packages` (`RuntimeDiscoveryService`), filterable by
+   `package_id`, `dataset_id`, `board`, `medium`, `version`, and `status`.
 
 ## Future Extension Points
 

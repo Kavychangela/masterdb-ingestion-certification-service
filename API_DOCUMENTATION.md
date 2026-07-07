@@ -284,21 +284,197 @@ artifact. Certification alone does not imply retrievability; see
 }
 ```
 
-## Registry Error Responses
+## Uniform Error Contract (Phase 4)
+
+Every error response — validation failure, missing entity, invalid lifecycle
+transition, upstream MDU failure, or unhandled exception — is shaped the
+same way, so any consumer (TANTRA included) can parse errors generically:
+
+```json
+{
+  "error": {
+    "type": "http_error",
+    "message": "No package found for package_id=unknown",
+    "path": "/packages/unknown"
+  }
+}
+```
+
+`type` is one of: `http_error` (expected 4xx conditions — not found, invalid
+transition, upstream MDU failure surfaced as 502) or `internal_error` (an
+unhandled 500; logged server-side with a stack trace, never leaked to the
+caller).
 
 Unknown package:
 
 ```json
-{
-  "detail": "No package found for package_id=unknown"
-}
+{"error": {"type": "http_error", "message": "No package found for package_id=unknown", "path": "/packages/unknown"}}
 ```
 
 Illegal lifecycle transition:
 
 ```json
+{"error": {"type": "http_error", "message": "Cannot transition package pkg-... from REGISTERED to CERTIFIED. Allowed transitions from REGISTERED: ['INGESTED', 'DEPRECATED'].", "path": "/packages/promote"}}
+```
+
+## GET /packages/{package_id}/replay (Phase 4)
+
+Recomputes lifecycle status purely by walking the recorded transition
+history and validates every hop against the lifecycle graph, independent of
+the stored `status` field. Used to detect drift/corruption.
+
+```json
+{"package_id": "pkg-...", "replay_consistent": true, "replayed_status": "CERTIFIED"}
+```
+
+## GET /packages/{package_id}/audit (Phase 4)
+
+Audit-completeness report: checks the transition history has exactly one
+root transition, every transition has a non-empty actor/reason/timestamp,
+timestamps are monotonic, and folds in the replay-consistency result.
+
+```json
 {
-  "detail": "Cannot transition package pkg-... from REGISTERED to CERTIFIED. Allowed transitions from REGISTERED: ['INGESTED', 'DEPRECATED']."
+  "package_id": "pkg-...",
+  "complete": true,
+  "issues": [],
+  "replay_consistent": true,
+  "replay_error": null,
+  "transition_count": 3
 }
 ```
+
+---
+
+# Phase 1 — MDU Integration Endpoints
+
+MASTERDB does not own schema/provenance/lineage semantics. These endpoints
+expose what MDU reports, plus MASTERDB's own version-negotiation decision
+on top of it. Configure `MDU_BASE_URL` / `MDU_API_KEY` as environment
+variables to enable live mode; without them every call below degrades to a
+flagged placeholder rather than failing.
+
+## GET /mdu/status
+
+```json
+{"live": true, "contract_finalized": false, "known_gaps": ["knowledge_object_id: ...", "..."]}
+```
+
+## GET /mdu/schema/{dataset_id}
+
+Passes through MDU's `GET /api/v1/schemas/dataset/{dataset_id}` response
+verbatim. Returns `502` with the uniform error contract if MDU is
+unreachable.
+
+## GET /mdu/provenance/{dataset_id}
+
+Passes through MDU's `GET /api/v1/datasets/{dataset_id}/provenance`
+response verbatim (this is MDU's documented lineage contract).
+
+## GET /mdu/schema-compatibility/{dataset_id}?local_schema_version=1.0
+
+Compares a locally-declared `schema_version` against MDU's canonical
+schema for the dataset, using MASTERDB's own negotiation rule (exact match
+/ minor-version drift / major-version mismatch):
+
+```json
+{
+  "source": "mdu-live",
+  "dataset_id": "BHIV-DS-MARITIME-AIS-LIVE-001",
+  "mdu_schema_version": "2.1",
+  "local_schema_version": "2.1",
+  "compatible": true,
+  "negotiation": "exact_match",
+  "reason": ""
+}
+```
+
+If MDU is unreachable/unconfigured:
+
+```json
+{
+  "source": "placeholder",
+  "compatible": true,
+  "reason": "MDU not configured; falling back to permissive placeholder check (no hard-fail on unconfirmed contract).",
+  "known_gaps": ["..."]
+}
+```
+
+---
+
+# Phase 2 — MASTERDB <-> TANTRA Runtime Interface
+
+The single surface TANTRA integrates against. All endpoints are read-mostly
+façades over MASTERDB's existing registry/lineage/retrieval services — no
+new ownership is introduced here.
+
+## POST /tantra/datasets/register
+
+Request/response identical to `POST /packages/register` (see above); this
+is the TANTRA-facing alias of the same operation, recorded with
+`actor="tantra"` by default.
+
+## GET /tantra/packages/{package_id}/retrieval-readiness
+
+Identical response shape to `GET /packages/{package_id}/retrieval`.
+
+## GET /tantra/certification/{dataset_id}
+
+```json
+{
+  "dataset_id": "sample-certified",
+  "state": "CERTIFIED",
+  "classification": "Trusted",
+  "integrity_score": 100.0,
+  "eligible_for_masterdb": true
+}
+```
+
+`404` (uniform error contract) if no certification report exists for that
+`dataset_id`.
+
+## GET /tantra/packages/{package_id}/runtime
+
+The bundled runtime-lookup view: lifecycle state, lineage, retrieval
+readiness, and certification status (best-effort, by `dataset_id`) in one
+call.
+
+```json
+{
+  "package": {"package_id": "pkg-...", "dataset_id": "ds-1", "status": "CERTIFIED", "...": "..."},
+  "lineage": {"package_id": "pkg-...", "knowledge_object_registered": true, "...": "...", "mdu_provenance": {"source": "mdu-live", "dataset_id": "ds-1", "provenance": {"...": "..."}}},
+  "retrieval_readiness": {"package_id": "pkg-...", "status": "RETRIEVABLE", "rules": ["..."]},
+  "certification_status": {"dataset_id": "ds-1", "state": "CERTIFIED", "...": "..."}
+}
+```
+
+---
+
+# Phase 3 — Runtime Discovery API
+
+## GET /discovery/packages
+
+Deterministic filtered lookup shared by TANTRA and any other downstream
+consumer — no ranking or relevance scoring, results always sorted by
+`package_id` so identical queries against identical state return identical
+order.
+
+Query parameters (all optional, combinable): `package_id`, `dataset_id`,
+`board`, `medium`, `version` (matches either `dataset_version` or
+`schema_version`), `status` (one of the `PackageStatus` enum values).
+
+```
+GET /discovery/packages?board=maritime&status=CERTIFIED
+```
+
+```json
+{
+  "count": 2,
+  "packages": [
+    {"package_id": "pkg-aaa...", "dataset_id": "ds-1", "board": "maritime", "status": "CERTIFIED", "...": "..."},
+    {"package_id": "pkg-bbb...", "dataset_id": "ds-2", "board": "maritime", "status": "CERTIFIED", "...": "..."}
+  ]
+}
+```
+
 

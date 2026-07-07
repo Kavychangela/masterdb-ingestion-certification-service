@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class ArtifactStore:
@@ -23,4 +23,27 @@ class ArtifactStore:
             return None
         with path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
+
+    def list_all(self, exclude_prefixes: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """
+        Load every record in this store. Used by discovery/query surfaces
+        that need to scan-and-filter rather than point-lookup by key.
+
+        `exclude_prefixes` skips convenience index keys (e.g. a secondary
+        "by-package-*" index) so callers don't double-count a record stored
+        under two keys.
+
+        Deterministic ordering: results are sorted by filename so repeated
+        calls against the same on-disk state always return the same order,
+        which matters for replayable discovery responses.
+        """
+        exclude_prefixes = exclude_prefixes or []
+        records: List[Dict[str, Any]] = []
+        for path in sorted(self.reports_dir.glob("*.json")):
+            key = path.stem
+            if any(key.startswith(prefix) for prefix in exclude_prefixes):
+                continue
+            with path.open("r", encoding="utf-8") as handle:
+                records.append(json.load(handle))
+        return records
 
