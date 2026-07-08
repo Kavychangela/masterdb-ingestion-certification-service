@@ -11,7 +11,7 @@ from models import (
     KnowledgeObjectRegisterRequest,
     PackageDeprecateRequest,
     PackagePromoteRequest,
-    PackageRegisterRequest,  
+    PackageRegisterRequest,
     PackageStatus,
     ValidationRequest,
 )
