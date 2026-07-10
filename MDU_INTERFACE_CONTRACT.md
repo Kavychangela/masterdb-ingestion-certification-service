@@ -47,6 +47,7 @@ JSON field names (`schema_version` vs `version`, etc.) match what
 `validate_schema_compatibility` expects — adjust the two `.get(...)` lookups
 in `MDUContractAdapter.validate_schema_compatibility` if they don't.
 
+
 ## Ownership
 
 | Concept                     | Owner | MASTERDB's role                     |
