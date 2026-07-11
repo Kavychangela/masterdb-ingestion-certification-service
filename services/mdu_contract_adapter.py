@@ -168,16 +168,29 @@ class MDUContractAdapter:
 
     def fetch_schema_contract(self, dataset_id: str) -> Dict[str, Any]:
         """
-        Fetch MDU's canonical schema for a dataset. Raises MDUUnavailableError
-        if MDU is unconfigured/unreachable — callers decide whether that's
-        fatal for their operation; this adapter never fabricates a schema.
+        Fetch MDU's canonical (current) schema for a dataset. Raises
+        MDUUnavailableError if MDU is unconfigured/unreachable — callers
+        decide whether that's fatal for their operation; this adapter never
+        fabricates a schema.
 
         Accepts either MASTERDB's canonical string dataset_id or MDU's
         internal UUID; resolves the former to the latter internally, since
         MDU's schema endpoint only accepts its own UUID.
+
+        MDU returns a LIST of schema version records (schema history), not
+        a single object -- confirmed live 2026-07-08. This method returns
+        only the current (index 0) version, since callers (and this
+        function's own -> Dict[str, Any] contract, and main.py's
+        `-> dict` route annotation) expect a single schema object, not a
+        version history. If the full history is needed later, add a
+        separate `fetch_schema_history()` method rather than changing this
+        one's return shape.
         """
         resolved_id = self._resolve_mdu_id(dataset_id)
-        return self.client.get_dataset_schema(resolved_id)
+        schema = self.client.get_dataset_schema(resolved_id)
+        if isinstance(schema, list):
+            schema = schema[0] if schema else {}
+        return schema
 
     def fetch_provenance_contract(self, dataset_id: str) -> Dict[str, Any]:
         """

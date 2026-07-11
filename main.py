@@ -11,7 +11,7 @@ from models import (
     KnowledgeObjectRegisterRequest,
     PackageDeprecateRequest,
     PackagePromoteRequest,
-    PackageRegisterRequest,  
+    PackageRegisterRequest,
     PackageStatus,
     ValidationRequest,
 )
@@ -339,7 +339,7 @@ def mdu_schema(dataset_id: str) -> dict:
 
 
 @app.get("/mdu/provenance/{dataset_id}")
-def mdu_provenance(dataset_id: str) -> dict:
+def mdu_provenance(dataset_id: str) -> list:
     try:
         return mdu_contract_adapter.fetch_provenance_contract(dataset_id)
     except MDUUnavailableError as exc:
@@ -424,4 +424,3 @@ def discover_packages(
         status=status,
     )
     return {"count": len(results), "packages": results}
-
