@@ -162,6 +162,7 @@ one-entry `history` recording the `REGISTERED` transition.
 
 ## POST /packages/promote
 
+
 Moves a package to the next lifecycle status. Rejects any edge not present
 in the lifecycle graph (see `ARCHITECTURE.md`) with `400`.
 
