@@ -1,0 +1,31 @@
+{
+  "status_code": 200,
+  "body": {
+    "service": "authentication",
+    "version": "1.0.0",
+    "inputs": {
+      "register": [
+        "record_id",
+        "payload.subject_id",
+        "payload.provider",
+        "actor",
+        "reason"
+      ],
+      "update": [
+        "payload",
+        "actor",
+        "reason"
+      ],
+      "deprecate": [
+        "actor",
+        "reason"
+      ]
+    },
+    "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+    "dependencies": [
+      "identity (optional, via payload.subject_id)"
+    ],
+    "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. Never fabricates or silently drops a record.",
+    "ownership_boundary": "MASTERDB stores/versions credential *references* only \u2014 not an identity provider. No password hashing, no token issuance, no auth decisioning."
+  }
+}

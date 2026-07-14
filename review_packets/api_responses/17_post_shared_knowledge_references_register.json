@@ -1,0 +1,24 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "kref-live-1",
+    "dataset": "knowledge_references",
+    "payload": {
+      "dataset_id": "BHIV-DS-MARITIME-AIS-LIVE-001"
+    },
+    "version": 1,
+    "deprecated": false,
+    "created_at": "2026-07-14T07:24:26.985804+00:00",
+    "updated_at": "2026-07-14T07:24:26.985820+00:00",
+    "history": [
+      {
+        "transition_id": "stx-ce13ad9f5181",
+        "version": 1,
+        "action": "REGISTERED",
+        "actor": "kavy",
+        "reason": "live evidence run",
+        "timestamp": "2026-07-14T07:24:26.985851+00:00"
+      }
+    ]
+  }
+}

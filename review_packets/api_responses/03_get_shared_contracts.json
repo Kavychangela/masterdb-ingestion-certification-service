@@ -1,0 +1,163 @@
+{
+  "status_code": 200,
+  "body": {
+    "count": 6,
+    "contracts": {
+      "authentication": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.subject_id",
+            "payload.provider",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [
+          "identity (optional, via payload.subject_id)"
+        ],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. Never fabricates or silently drops a record.",
+        "ownership_boundary": "MASTERDB stores/versions credential *references* only \u2014 not an identity provider. No password hashing, no token issuance, no auth decisioning."
+      },
+      "identity": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.display_name",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record.",
+        "ownership_boundary": "MASTERDB owns storage/versioning of the shared profile record. It does not own or infer identity semantics (e.g. verification status) beyond what a product explicitly writes into payload."
+      },
+      "organizations": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.name",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [
+          "identity (optional, via payload.owner_identity_id)"
+        ],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. GET .../resolve reports a missing dependency rather than failing the whole request.",
+        "ownership_boundary": "MASTERDB owns the shared organization record only; it does not own product-specific tenant configuration, which stays in each product's own database."
+      },
+      "configuration": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.key",
+            "payload.value",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. Replay-safe: GET .../replay recomputes version/state purely from stored history.",
+        "ownership_boundary": "MASTERDB stores shared, cross-product configuration values verbatim. It does not interpret or apply configuration (no governance/decision logic on top of a value)."
+      },
+      "knowledge-references": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.dataset_id",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [
+          "MDU (schema/provenance, via MDUContractAdapter \u2014 not another shared dataset)"
+        ],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. Does NOT attempt to resolve the referenced MDU content itself \u2014 use /mdu/schema/{dataset_id} or /mdu/provenance/{dataset_id} for that, which already degrade gracefully if MDU is unreachable.",
+        "ownership_boundary": "MASTERDB stores the *pointer* (dataset_id/package_id) only. Canonical schema, provenance, and lineage content are owned by MDU (Nupur) and are never duplicated here."
+      },
+      "notifications": {
+        "version": "1.0.0",
+        "inputs": {
+          "register": [
+            "record_id",
+            "payload.channel",
+            "payload.template",
+            "actor",
+            "reason"
+          ],
+          "update": [
+            "payload",
+            "actor",
+            "reason"
+          ],
+          "deprecate": [
+            "actor",
+            "reason"
+          ]
+        },
+        "outputs": "SharedRecord \u2014 versioned record with full transition/audit history.",
+        "dependencies": [
+          "identity (optional, via payload.recipient_identity_id)"
+        ],
+        "failure_behaviour": "404 if record_id unknown; 409 on duplicate register; 400 on missing required payload fields or mutation of a deprecated record. GET .../resolve reports a missing dependency rather than failing the whole request.",
+        "ownership_boundary": "MASTERDB stores shared notification/template records only; it does not perform delivery (no SMTP/push/SMS sending logic)."
+      }
+    }
+  }
+}

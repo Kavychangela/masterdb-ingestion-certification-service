@@ -260,3 +260,73 @@ here.
 - Run the live MDU verification steps in "Evidence Not Included" above and
   attach real output before considering Phase 5/6 complete.
 
+## Task 4 — Shared Data Services & MASTERDB Convergence
+
+Full detail in `MASTERDB_SHARED_DATA_ARCHITECTURE.md`; evidence in
+`review_packets/` (see below). This section summarizes what was delivered
+against the six Task 4 phases.
+
+### Implemented
+
+- **Phase 1 — Shared Data Service Registry**: 15 dataset categories
+  registered in `shared_data/registry.py`, each declaring purpose, owner,
+  consumers, update policy, lifecycle, and dependency map. Read live via
+  `GET /shared/registry`.
+- **Phase 2 — Shared Service Contracts**: six live services
+  (Authentication, Identity, Organizations, Configuration, Knowledge
+  References, Notifications), each a thin wrapper over one generic engine
+  (`SharedRecordStore`). Contracts served live via `GET /shared/contracts`.
+- **Phase 3 — Ecosystem Dependency Mapping**: Product DB → MASTERDB → MDU
+  documented in `MASTERDB_SHARED_DATA_ARCHITECTURE.md` §4, including
+  ownership, sync model, read/write paths, and what each layer cannot own.
+- **Phase 4 — Runtime Integration**: 13 new `/shared/*` endpoints,
+  version-aware (`/shared/version-compatibility`), replay-safe
+  (`.../replay`), observable (structured logging on every mutation),
+  auditable (`.../history`), stateless (JSON-file backed, no in-memory
+  session state). No semantic interpretation, ontology, or governance
+  logic — `payload` is validated only for required-key presence.
+- **Phase 5 — Testing**: 46 new tests across 6 files (96 total, all
+  passing) covering cross-service retrieval, version compatibility,
+  graceful failures, missing dependency handling, replay consistency, and
+  API validation. See `review_packets/runtime/task4_full_test_run.txt`.
+- **Phase 6 — Documentation & Handover**: `MASTERDB_SHARED_DATA_ARCHITECTURE.md`
+  added; `README.md`, `ARCHITECTURE.md`, `API_DOCUMENTATION.md`,
+  `HANDOVER.md`, and this file all updated.
+
+### Evidence included
+
+- `review_packets/runtime/task4_full_test_run.txt` — full verbose pytest
+  run (96 passed).
+- `review_packets/runtime/task4_live_api_console_log.txt` — structured
+  logging output from a live API run (register/update/400/409/404 paths).
+- `review_packets/api_responses/*.json` — 23 real request/response pairs
+  captured via `TestClient` against the running FastAPI app: every one of
+  the 13 `/shared/*` routes exercised, register evidence for all 6 shared
+  services, the full register→update→deprecate lifecycle, both outcomes
+  of dependency resolution (satisfied and missing), and all failure paths
+  (400/404/409).
+- `review_packets/architecture_diagram/masterdb_shared_data_architecture.png`
+  — rendered diagram of the three-layer model.
+- `review_packets/code_packets/changed_files.md`,
+  `changed_file_list.txt`, `architecture_delta.md`, and `source/` (literal
+  copies of every changed/added file) — full change inventory and
+  before/after architecture diff.
+
+### Reviewer checklist — Task 4
+
+- Confirm no dataset in `shared_data/registry.py` duplicates a Product
+  Database's private table.
+- Confirm `SharedRecordStore` validates only required-*key* presence, never
+  payload values — no business logic leaked into the generic engine.
+- Confirm `knowledge_references` stores a pointer only; confirm nothing
+  under `shared_store/knowledge_references/` ever contains MDU's actual
+  schema/provenance content.
+- Confirm every `/shared/*` mutation produces a `SharedRecordTransition`
+  with actor, reason, timestamp, and version.
+- Confirm `.../replay` correctly flags version drift (see
+  `test_replay_detects_version_drift`).
+- Confirm `.../resolve` reports missing dependencies rather than raising.
+- Confirm Task 1–3 routes, services, and tests are unmodified (see
+  `review_packets/code_packets/architecture_delta.md` → "What did NOT
+  change").
+

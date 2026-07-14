@@ -1,0 +1,10 @@
+{
+  "status_code": 409,
+  "body": {
+    "error": {
+      "type": "http_error",
+      "message": "[organizations] record_id=org-live-1 already exists; use update() instead of register().",
+      "path": "/shared/organizations/register"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "status_code": 200,
+  "body": {
+    "service": "organizations",
+    "record": {
+      "record_id": "org-live-1",
+      "dataset": "organizations",
+      "payload": {
+        "name": "BHIV",
+        "owner_identity_id": "id-live-1"
+      },
+      "version": 1,
+      "deprecated": false,
+      "created_at": "2026-07-13T06:02:25.627394+00:00",
+      "updated_at": "2026-07-13T06:02:25.627402+00:00",
+      "history": [
+        {
+          "transition_id": "stx-bc7564224f1e",
+          "version": 1,
+          "action": "REGISTERED",
+          "actor": "kavy",
+          "reason": "live evidence run",
+          "timestamp": "2026-07-13T06:02:25.627427+00:00"
+        }
+      ]
+    },
+    "resolved_dependencies": {
+      "owner_identity_id": {
+        "record_id": "id-live-1",
+        "dataset": "identity",
+        "payload": {
+          "display_name": "Kavy"
+        },
+        "version": 1,
+        "deprecated": false,
+        "created_at": "2026-07-13T06:02:25.624451+00:00",
+        "updated_at": "2026-07-13T06:02:25.624464+00:00",
+        "history": [
+          {
+            "transition_id": "stx-ec93324da3b9",
+            "version": 1,
+            "action": "REGISTERED",
+            "actor": "kavy",
+            "reason": "live evidence run",
+            "timestamp": "2026-07-13T06:02:25.624504+00:00"
+          }
+        ]
+      }
+    },
+    "missing_dependencies": [],
+    "fully_resolved": true
+  }
+}

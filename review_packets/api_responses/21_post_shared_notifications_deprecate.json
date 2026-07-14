@@ -1,0 +1,33 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "notif-live-1",
+    "dataset": "notifications",
+    "payload": {
+      "channel": "email",
+      "template": "welcome"
+    },
+    "version": 2,
+    "deprecated": true,
+    "created_at": "2026-07-14T07:24:26.990917+00:00",
+    "updated_at": "2026-07-14T07:24:27.004343+00:00",
+    "history": [
+      {
+        "transition_id": "stx-58dd0eefa5f3",
+        "version": 1,
+        "action": "REGISTERED",
+        "actor": "kavy",
+        "reason": "live evidence run",
+        "timestamp": "2026-07-14T07:24:26.990954+00:00"
+      },
+      {
+        "transition_id": "stx-3110aea57e30",
+        "version": 2,
+        "action": "DEPRECATED",
+        "actor": "kavy",
+        "reason": "retiring this template",
+        "timestamp": "2026-07-14T07:24:27.004380+00:00"
+      }
+    ]
+  }
+}

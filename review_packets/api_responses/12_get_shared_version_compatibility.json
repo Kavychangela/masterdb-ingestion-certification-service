@@ -1,0 +1,8 @@
+{
+  "status_code": 200,
+  "body": {
+    "compatible": false,
+    "negotiation": "major_version_mismatch",
+    "reason": "Major version mismatch: local=1.2 remote=2.0."
+  }
+}

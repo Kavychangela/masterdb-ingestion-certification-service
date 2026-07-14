@@ -1,0 +1,25 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "cfg-live-2",
+    "dataset": "configuration",
+    "payload": {
+      "key": "max_retries",
+      "value": 3
+    },
+    "version": 1,
+    "deprecated": false,
+    "created_at": "2026-07-14T07:24:26.979160+00:00",
+    "updated_at": "2026-07-14T07:24:26.979175+00:00",
+    "history": [
+      {
+        "transition_id": "stx-2dccef04fd8f",
+        "version": 1,
+        "action": "REGISTERED",
+        "actor": "kavy",
+        "reason": "live evidence run",
+        "timestamp": "2026-07-14T07:24:26.979238+00:00"
+      }
+    ]
+  }
+}

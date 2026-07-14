@@ -1,0 +1,32 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "id-live-1",
+    "dataset": "identity",
+    "payload": {
+      "display_name": "Kavy S"
+    },
+    "version": 2,
+    "deprecated": false,
+    "created_at": "2026-07-13T06:02:25.624451+00:00",
+    "updated_at": "2026-07-13T06:02:25.632646+00:00",
+    "history": [
+      {
+        "transition_id": "stx-ec93324da3b9",
+        "version": 1,
+        "action": "REGISTERED",
+        "actor": "kavy",
+        "reason": "live evidence run",
+        "timestamp": "2026-07-13T06:02:25.624504+00:00"
+      },
+      {
+        "transition_id": "stx-5628d31255c3",
+        "version": 2,
+        "action": "UPDATED",
+        "actor": "kavy",
+        "reason": "live evidence update",
+        "timestamp": "2026-07-13T06:02:25.632676+00:00"
+      }
+    ]
+  }
+}

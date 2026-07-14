@@ -1,0 +1,25 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "auth-live-1",
+    "dataset": "authentication",
+    "payload": {
+      "subject_id": "id-live-1",
+      "provider": "google"
+    },
+    "version": 1,
+    "deprecated": false,
+    "created_at": "2026-07-14T07:24:26.964138+00:00",
+    "updated_at": "2026-07-14T07:24:26.964260+00:00",
+    "history": [
+      {
+        "transition_id": "stx-d77fd438d8ec",
+        "version": 1,
+        "action": "REGISTERED",
+        "actor": "kavy",
+        "reason": "live evidence run",
+        "timestamp": "2026-07-14T07:24:26.964300+00:00"
+      }
+    ]
+  }
+}

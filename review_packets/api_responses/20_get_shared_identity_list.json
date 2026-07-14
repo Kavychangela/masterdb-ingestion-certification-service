@@ -1,0 +1,30 @@
+{
+  "status_code": 200,
+  "body": {
+    "service": "identity",
+    "count": 1,
+    "records": [
+      {
+        "record_id": "id-live-2",
+        "dataset": "identity",
+        "payload": {
+          "display_name": "Nupur"
+        },
+        "version": 1,
+        "deprecated": false,
+        "created_at": "2026-07-14T07:24:26.997850+00:00",
+        "updated_at": "2026-07-14T07:24:26.997863+00:00",
+        "history": [
+          {
+            "transition_id": "stx-7c224a8fbd21",
+            "version": 1,
+            "action": "REGISTERED",
+            "actor": "kavy",
+            "reason": "second identity record for list evidence",
+            "timestamp": "2026-07-14T07:24:26.997935+00:00"
+          }
+        ]
+      }
+    ]
+  }
+}

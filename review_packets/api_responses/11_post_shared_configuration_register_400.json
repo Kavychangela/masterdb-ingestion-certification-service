@@ -1,0 +1,10 @@
+{
+  "status_code": 400,
+  "body": {
+    "error": {
+      "type": "http_error",
+      "message": "[configuration] payload missing required field(s): ['value']",
+      "path": "/shared/configuration/register"
+    }
+  }
+}

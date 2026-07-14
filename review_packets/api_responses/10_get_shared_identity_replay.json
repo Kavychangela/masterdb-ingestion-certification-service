@@ -1,0 +1,11 @@
+{
+  "status_code": 200,
+  "body": {
+    "record_id": "id-live-1",
+    "replay_consistent": true,
+    "replayed_version": 2,
+    "replayed_deprecated": false,
+    "stored_version": 2,
+    "stored_deprecated": false
+  }
+}

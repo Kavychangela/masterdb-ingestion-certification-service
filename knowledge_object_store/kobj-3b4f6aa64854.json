@@ -1,0 +1,12 @@
+{
+    "knowledge_object_id": "kobj-3b4f6aa64854",
+    "knowledge_hash": "d3dd9cd8aaee1dd0ad4e37b1d2874ff351b1580134554eedd14c06ff26905b43",
+    "package_id": "pkg-1a3be4021bc6",
+    "schema_version": "2",
+    "parent_package": null,
+    "child_packages": [],
+    "source_reference": null,
+    "lineage_reference": null,
+    "derivation_path": [],
+    "created_at": "2026-07-14T07:38:50.799456+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "status_code": 400,
+  "body": {
+    "error": {
+      "type": "http_error",
+      "message": "[notifications] record_id=notif-live-1 is deprecated and cannot be updated.",
+      "path": "/shared/notifications/notif-live-1"
+    }
+  }
+}

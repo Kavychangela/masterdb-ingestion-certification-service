@@ -1,0 +1,6 @@
+2026-07-13 06:02:25,624 INFO masterdb: shared record registered dataset=identity record_id=id-live-1 actor=kavy
+2026-07-13 06:02:25,627 INFO masterdb: shared record registered dataset=organizations record_id=org-live-1 actor=kavy
+2026-07-13 06:02:25,632 INFO masterdb: shared record updated dataset=identity record_id=id-live-1 version=2 actor=kavy
+2026-07-13 06:02:25,639 WARNING masterdb: HTTPException 400 at /shared/configuration/register: [configuration] payload missing required field(s): ['value']
+2026-07-13 06:02:25,643 WARNING masterdb: HTTPException 409 at /shared/organizations/register: [organizations] record_id=org-live-1 already exists; use update() instead of register().
+2026-07-13 06:02:25,646 WARNING masterdb: HTTPException 404 at /shared/not-a-real-service: Unknown shared service 'not-a-real-service'. Available: ['authentication', 'configuration', 'identity', 'knowledge-references', 'notifications', 'organizations']

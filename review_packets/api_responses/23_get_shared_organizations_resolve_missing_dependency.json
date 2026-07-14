@@ -1,0 +1,33 @@
+{
+  "status_code": 200,
+  "body": {
+    "service": "organizations",
+    "record": {
+      "record_id": "org-live-ghost",
+      "dataset": "organizations",
+      "payload": {
+        "name": "Ghost Org",
+        "owner_identity_id": "id-does-not-exist"
+      },
+      "version": 1,
+      "deprecated": false,
+      "created_at": "2026-07-14T07:24:27.012391+00:00",
+      "updated_at": "2026-07-14T07:24:27.012407+00:00",
+      "history": [
+        {
+          "transition_id": "stx-a221278bd2f9",
+          "version": 1,
+          "action": "REGISTERED",
+          "actor": "kavy",
+          "reason": "missing dependency evidence",
+          "timestamp": "2026-07-14T07:24:27.012440+00:00"
+        }
+      ]
+    },
+    "resolved_dependencies": {},
+    "missing_dependencies": [
+      "owner_identity_id=id-does-not-exist not found in 'identity'"
+    ],
+    "fully_resolved": false
+  }
+}
