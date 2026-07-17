@@ -1,0 +1,32 @@
+INFO:     Started server process [1191]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8123 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60946 - "GET /bcaes/registries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60768 - "GET /bcaes/registries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42424 - "POST /bcaes/registries/domain/objects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42434 - "POST /bcaes/registries/capability/objects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42436 - "POST /bcaes/registries/platform_service/objects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42448 - "GET /bcaes/relationships/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42454 - "GET /bcaes/dependencies/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42456 - "GET /bcaes/registries/domain/objects/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:42458 - "GET /bcaes/search?q=schema HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42474 - "GET /bcaes/capability-reuse-check?name=Schema%20Validation HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42482 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42498 - "GET /bcaes/registries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39986 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39988 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39992 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39994 - "GET /bcaes/dependencies/psv-9f0eb2861461 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40004 - "GET /bcaes/registries/domain/objects/dom-3a3090bf1d89 HTTP/1.1" 200 OK
+2026-07-17 04:37:07,190 WARNING masterdb: HTTPException 400 at /bcaes/registries/platform_service/objects: Dependency 'cap-doesnotexist' does not exist in any registry.
+INFO:     127.0.0.1:39158 - "POST /bcaes/registries/platform_service/objects HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:39172 - "POST /bcaes/registries/capability/objects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39176 - "GET /bcaes/validate/duplicates HTTP/1.1" 200 OK
+2026-07-17 04:37:07,234 WARNING masterdb: HTTPException 404 at /bcaes/registries/not_a_real_registry/objects: Unknown registry 'not_a_real_registry'. Available: ['capability', 'domain', 'engine', 'framework', 'integration', 'interface', 'knowledge_asset', 'platform_service', 'product', 'program', 'runtime']
+INFO:     127.0.0.1:39188 - "GET /bcaes/registries/not_a_real_registry/objects HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50280 - "DELETE /bcaes/registries/capability/objects/cap-b5dd81fc1c88 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50296 - "PATCH /bcaes/registries/platform_service/objects/psv-9f0eb2861461 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50304 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50314 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50326 - "GET /openapi.json HTTP/1.1" 200 OK

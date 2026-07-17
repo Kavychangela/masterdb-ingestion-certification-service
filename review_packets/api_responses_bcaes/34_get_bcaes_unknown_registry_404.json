@@ -1,0 +1,1 @@
+{"error":{"type":"http_error","message":"Unknown registry 'not_a_real_registry'. Available: ['capability', 'domain', 'engine', 'framework', 'integration', 'interface', 'knowledge_asset', 'platform_service', 'product', 'program', 'runtime']","path":"/bcaes/registries/not_a_real_registry/objects"}}

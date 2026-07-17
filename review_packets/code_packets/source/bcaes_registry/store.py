@@ -1,0 +1,168 @@
+"""
+In-memory canonical store for the eleven BCAES registries.
+
+Kept intentionally simple: one dict per registry_type, keyed by object id.
+Consumers are derived (see models.RegistryObject docstring) rather than
+stored redundantly, so there is exactly one place edges are written
+(`dependencies`) and zero places they can silently drift.
+"""
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+
+from bcaes_registry.models import (
+    DependencyRef,
+    RegisterObjectRequest,
+    RegistryObject,
+    RegistryType,
+    UpdateObjectRequest,
+    new_object_id,
+)
+
+
+class ObjectNotFoundError(Exception):
+    pass
+
+
+class DependencyNotFoundError(Exception):
+    """Raised when a registered object declares a dependency id that does
+    not exist anywhere in the registry."""
+
+
+class CanonicalRegistryStore:
+    def __init__(self) -> None:
+        self._objects: Dict[RegistryType, Dict[str, RegistryObject]] = {
+            rt: {} for rt in RegistryType
+        }
+
+    # -- lookup ----------------------------------------------------------
+
+    def get(self, registry_type: RegistryType, object_id: str) -> RegistryObject:
+        obj = self._objects[registry_type].get(object_id)
+        if obj is None:
+            raise ObjectNotFoundError(
+                f"No object '{object_id}' in {registry_type.value} registry."
+            )
+        return obj
+
+    def get_by_id(self, object_id: str) -> RegistryObject:
+        """Look up an object by id without knowing its registry_type
+        up front (used by the relationship/dependency explorers)."""
+        for bucket in self._objects.values():
+            if object_id in bucket:
+                return bucket[object_id]
+        raise ObjectNotFoundError(f"No object '{object_id}' in any registry.")
+
+    def all_objects(self) -> List[RegistryObject]:
+        return [obj for bucket in self._objects.values() for obj in bucket.values()]
+
+    def list_registry(self, registry_type: RegistryType) -> List[RegistryObject]:
+        return list(self._objects[registry_type].values())
+
+    def search(
+        self,
+        query: Optional[str] = None,
+        registry_type: Optional[RegistryType] = None,
+        owner: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[RegistryObject]:
+        pool = (
+            self.list_registry(registry_type)
+            if registry_type is not None
+            else self.all_objects()
+        )
+        results = pool
+        if query:
+            q = query.lower()
+            results = [
+                o
+                for o in results
+                if q in o.name.lower() or q in o.purpose.lower()
+            ]
+        if owner:
+            results = [o for o in results if o.owner.lower() == owner.lower()]
+        if status:
+            results = [o for o in results if o.status.value == status]
+        return results
+
+    # -- mutation ----------------------------------------------------------
+
+    def register(
+        self, registry_type: RegistryType, request: RegisterObjectRequest
+    ) -> RegistryObject:
+        for dep in request.dependencies:
+            if not self._exists(dep.id):
+                raise DependencyNotFoundError(
+                    f"Dependency '{dep.id}' does not exist in any registry."
+                )
+
+        object_id = new_object_id(registry_type)
+        obj = RegistryObject(
+            id=object_id,
+            registry_type=registry_type,
+            classification=registry_type,
+            name=request.name,
+            purpose=request.purpose,
+            owner=request.owner,
+            status=request.status,
+            version=request.version,
+            dependencies=request.dependencies,
+            consumers=[],
+            authority_boundaries=request.authority_boundaries,
+            links=request.links,
+        )
+        self._objects[registry_type][object_id] = obj
+        return obj
+
+    def update(
+        self,
+        registry_type: RegistryType,
+        object_id: str,
+        request: UpdateObjectRequest,
+    ) -> RegistryObject:
+        obj = self.get(registry_type, object_id)
+        data = obj.model_dump()
+
+        if request.dependencies is not None:
+            for dep in request.dependencies:
+                if not self._exists(dep.id):
+                    raise DependencyNotFoundError(
+                        f"Dependency '{dep.id}' does not exist in any registry."
+                    )
+            data["dependencies"] = [d.model_dump() for d in request.dependencies]
+
+        for field in ("name", "purpose", "owner", "status", "version",
+                       "authority_boundaries", "links"):
+            value = getattr(request, field)
+            if value is not None:
+                data[field] = value
+
+        data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        updated = RegistryObject(**data)
+        self._objects[registry_type][object_id] = updated
+        return updated
+
+    def delete(self, registry_type: RegistryType, object_id: str) -> None:
+        self.get(registry_type, object_id)  # raises if missing
+        del self._objects[registry_type][object_id]
+
+    def _exists(self, object_id: str) -> bool:
+        try:
+            self.get_by_id(object_id)
+            return True
+        except ObjectNotFoundError:
+            return False
+
+    # -- derived: consumers --------------------------------------------
+
+    def consumers_of(self, object_id: str) -> List[str]:
+        """All objects that declare `object_id` as a dependency."""
+        return sorted(
+            o.id
+            for o in self.all_objects()
+            if any(d.id == object_id for d in o.dependencies)
+        )
+
+    def with_derived_consumers(self, obj: RegistryObject) -> RegistryObject:
+        data = obj.model_dump()
+        data["consumers"] = self.consumers_of(obj.id)
+        return RegistryObject(**data)
