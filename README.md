@@ -39,6 +39,7 @@ Owned by this  service:
   Knowledge References, Notifications; see
   `MASTERDB_SHARED_DATA_ARCHITECTURE.md`)
 
+
 Out of scope (owned elsewhere):
 
 - Canonical schemas / ontology definitions (MDU)
