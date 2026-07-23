@@ -1,0 +1,19 @@
+[
+  "/bcaes/capability-reuse-check",
+  "/bcaes/convergence",
+  "/bcaes/convergence/{object_id}",
+  "/bcaes/dependencies/{object_id}",
+  "/bcaes/registries",
+  "/bcaes/registries/{registry_type}/objects",
+  "/bcaes/registries/{registry_type}/objects/{object_id}",
+  "/bcaes/relationships/{object_id}",
+  "/bcaes/search",
+  "/bcaes/snapshot",
+  "/bcaes/validate/architecture",
+  "/bcaes/validate/authority-boundaries",
+  "/bcaes/validate/classification",
+  "/bcaes/validate/dependency-integrity",
+  "/bcaes/validate/duplicates",
+  "/bcaes/validate/ownership",
+  "/bcaes/validate/version-compatibility"
+]

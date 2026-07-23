@@ -13,6 +13,13 @@ runtime reasoning, embeddings, or vector databases — those are owned by MDU
 (Nupur) and downstream reasoning systems (TANTRA). See
 `MDU_INTERFACE_CONTRACT.md` for the consumption boundary.
 
+Additionally, this service hosts the BCAES Canonical Registry
+(`bcaes_registry/`, `/bcaes/*`) — a separate, additive module cataloging
+ecosystem-wide architectural objects (products, capabilities, platform
+services, etc.) plus production convergence tracking and a live reality
+snapshot. It does not touch any of the above and does not talk to the live
+`MDUClient`. See `BCAES_REGISTRY_ARCHITECTURE.md` for the full design.
+
 ## Components
 
 ```mermaid

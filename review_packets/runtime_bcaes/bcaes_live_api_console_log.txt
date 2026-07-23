@@ -1,32 +1,24 @@
-INFO:     Started server process [1191]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8123 (Press CTRL+C to quit)
-INFO:     127.0.0.1:60946 - "GET /bcaes/registries HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60768 - "GET /bcaes/registries HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42424 - "POST /bcaes/registries/domain/objects HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42434 - "POST /bcaes/registries/capability/objects HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42436 - "POST /bcaes/registries/platform_service/objects HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42448 - "GET /bcaes/relationships/ HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:42454 - "GET /bcaes/dependencies/ HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:42456 - "GET /bcaes/registries/domain/objects/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:42458 - "GET /bcaes/search?q=schema HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42474 - "GET /bcaes/capability-reuse-check?name=Schema%20Validation HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42482 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42498 - "GET /bcaes/registries HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39986 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39988 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39992 - "GET /bcaes/relationships/cap-198f8afd4901 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39994 - "GET /bcaes/dependencies/psv-9f0eb2861461 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40004 - "GET /bcaes/registries/domain/objects/dom-3a3090bf1d89 HTTP/1.1" 200 OK
-2026-07-17 04:37:07,190 WARNING masterdb: HTTPException 400 at /bcaes/registries/platform_service/objects: Dependency 'cap-doesnotexist' does not exist in any registry.
-INFO:     127.0.0.1:39158 - "POST /bcaes/registries/platform_service/objects HTTP/1.1" 400 Bad Request
-INFO:     127.0.0.1:39172 - "POST /bcaes/registries/capability/objects HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39176 - "GET /bcaes/validate/duplicates HTTP/1.1" 200 OK
-2026-07-17 04:37:07,234 WARNING masterdb: HTTPException 404 at /bcaes/registries/not_a_real_registry/objects: Unknown registry 'not_a_real_registry'. Available: ['capability', 'domain', 'engine', 'framework', 'integration', 'interface', 'knowledge_asset', 'platform_service', 'product', 'program', 'runtime']
-INFO:     127.0.0.1:39188 - "GET /bcaes/registries/not_a_real_registry/objects HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:50280 - "DELETE /bcaes/registries/capability/objects/cap-b5dd81fc1c88 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50296 - "PATCH /bcaes/registries/platform_service/objects/psv-9f0eb2861461 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50304 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50314 - "GET /bcaes/validate/architecture HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50326 - "GET /openapi.json HTTP/1.1" 200 OK
+wrote review_packets/api_responses_bcaes/01_post_bcaes_register_domain.json  [200]
+wrote review_packets/api_responses_bcaes/02_post_bcaes_register_capability_with_dependency.json  [200]
+wrote review_packets/api_responses_bcaes/03_post_bcaes_register_product.json  [200]
+wrote review_packets/api_responses_bcaes/04_get_bcaes_relationships.json  [200]
+wrote review_packets/api_responses_bcaes/05_get_bcaes_transitive_dependencies.json  [200]
+wrote review_packets/api_responses_bcaes/06_get_bcaes_object_with_derived_consumer.json  [200]
+wrote review_packets/api_responses_bcaes/07_get_bcaes_search.json  [200]
+wrote review_packets/api_responses_bcaes/08_get_bcaes_capability_reuse_check.json  [200]
+2026-07-22 08:49:38,388 WARNING masterdb: HTTPException 400 at /bcaes/registries/platform_service/objects: Dependency 'cap-ghost' does not exist in any registry.
+wrote review_packets/api_responses_bcaes/09_post_bcaes_failure_missing_dependency_400.json  [400]
+2026-07-22 08:49:38,390 WARNING masterdb: HTTPException 404 at /bcaes/registries/not_a_registry/objects: Unknown registry type 'not_a_registry'.
+wrote review_packets/api_responses_bcaes/10_get_bcaes_unknown_registry_404.json  [404]
+wrote review_packets/api_responses_bcaes/11_get_bcaes_validate_architecture_pass.json  [200]
+wrote review_packets/api_responses_bcaes/12_get_bcaes_validate_architecture_replay_identical.json  [200]
+wrote review_packets/api_responses_bcaes/13_get_bcaes_registries_summary.json  [200]
+wrote review_packets/api_responses_bcaes/14_post_bcaes_convergence_upsert.json  [200]
+wrote review_packets/api_responses_bcaes/15_get_bcaes_convergence_single.json  [200]
+wrote review_packets/api_responses_bcaes/16_get_bcaes_convergence_list.json  [200]
+wrote review_packets/api_responses_bcaes/17_get_bcaes_snapshot.json  [200]
+2026-07-22 08:49:38,409 WARNING masterdb: HTTPException 404 at /bcaes/convergence/prd-nonexistent: No object 'prd-nonexistent' in any registry.
+wrote review_packets/api_responses_bcaes/18_post_bcaes_convergence_missing_object_404.json  [404]
+wrote review_packets/api_responses_bcaes/19_openapi_bcaes_paths.json  (17 paths)
+
+Done. All responses above came from a live TestClient hitting main.app.

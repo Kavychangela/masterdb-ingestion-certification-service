@@ -1,0 +1,15 @@
+{
+  "status_code": 200,
+  "body": {
+    "id": "prd-b6ed8fe4dd10",
+    "name": "MASTERDB Ingestion Certification Service",
+    "registry_type": "product",
+    "dependencies": [
+      {
+        "id": "cap-df7f531fd985",
+        "required_version": null
+      }
+    ],
+    "consumers": []
+  }
+}

@@ -7,7 +7,9 @@ by PackageRegistryService / SharedDataRegistryService elsewhere in this repo.
 """
 from typing import Dict, List, Optional
 
-from bcaes_registry import graph, validators
+from bcaes_registry import graph, snapshot, validators
+from bcaes_registry.convergence_models import ConvergenceRecord, ConvergenceUpdateRequest
+from bcaes_registry.convergence_store import ConvergenceStore
 from bcaes_registry.models import (
     RegisterObjectRequest,
     RegistryObject,
@@ -22,6 +24,7 @@ __all__ = ["BCAESRegistryService", "ObjectNotFoundError", "DependencyNotFoundErr
 class BCAESRegistryService:
     def __init__(self) -> None:
         self._store = CanonicalRegistryStore()
+        self._convergence_store = ConvergenceStore(self._store)
 
     # -- registry CRUD ---------------------------------------------------
 
@@ -91,3 +94,19 @@ class BCAESRegistryService:
 
     def validate_architecture(self) -> Dict:
         return validators.run_architecture_validation(self._store)
+
+    # -- production convergence (BCAES Volume 6) ---------------------------
+
+    def upsert_convergence(self, object_id: str, request: ConvergenceUpdateRequest) -> ConvergenceRecord:
+        return self._convergence_store.upsert(object_id, request)
+
+    def get_convergence(self, object_id: str) -> ConvergenceRecord:
+        return self._convergence_store.get(object_id)
+
+    def list_convergence(self) -> List[ConvergenceRecord]:
+        return self._convergence_store.all_records()
+
+    # -- current reality snapshot (BCAES Volume 7) --------------------------
+
+    def generate_snapshot(self) -> Dict:
+        return snapshot.generate_snapshot(self._store, self._convergence_store)

@@ -8,6 +8,12 @@ http://127.0.0.1:8000
 
 All endpoints return structured JSON only.
 
+> The BCAES Canonical Registry's `/bcaes/*` endpoints (registry CRUD,
+> search, relationships, validation, production convergence, reality
+> snapshot) are documented separately in `BCAES_REGISTRY_ARCHITECTURE.md`
+> §6, since they're a distinct, additive module rather than part of the
+> certification/lifecycle/lineage API below.
+
 ## POST /validate
 
 Runs deterministic validation checks and stores a validation report.

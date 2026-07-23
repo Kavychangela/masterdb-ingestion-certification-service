@@ -1,0 +1,33 @@
+{
+  "status_code": 200,
+  "body": {
+    "count": 1,
+    "results": [
+      {
+        "id": "cap-df7f531fd985",
+        "registry_type": "capability",
+        "classification": "capability",
+        "name": "Schema Compatibility Validation",
+        "purpose": "Validates MDU schema compatibility for a dataset.",
+        "owner": "Kavy",
+        "status": "draft",
+        "version": "1.0",
+        "dependencies": [
+          {
+            "id": "dom-8b2a7adbbfdb",
+            "required_version": null
+          }
+        ],
+        "consumers": [
+          "prd-b6ed8fe4dd10"
+        ],
+        "authority_boundaries": [
+          "Kavy"
+        ],
+        "links": [],
+        "created_at": "2026-07-22T08:49:38.373917+00:00",
+        "updated_at": "2026-07-22T08:49:38.373928+00:00"
+      }
+    ]
+  }
+}

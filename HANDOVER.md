@@ -202,3 +202,13 @@ in `MASTERDB_SHARED_DATA_ARCHITECTURE.md`. Summary for handover:
   call to `/mdu/schema/{id}` or `/mdu/provenance/{id}`, consistent with
   never duplicating MDU-owned content into MASTERDB's shared store.
 
+## BCAES Canonical Registry
+
+A separate, additive module (`bcaes_registry/`, `/bcaes/*` routes) also
+lives in this repo — the ecosystem-wide product/capability/service
+catalog plus production convergence tracking and a live reality snapshot.
+It's independent of everything above (no shared state, no shared routes).
+Full design, current status, and a corrected account of an earlier wiring
+gap are in `BCAES_REGISTRY_ARCHITECTURE.md` — read that before touching
+`bcaes_registry/`.
+

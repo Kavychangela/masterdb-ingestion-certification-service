@@ -1,0 +1,12 @@
+{
+  "status_code": 200,
+  "body": {
+    "id": "prd-b6ed8fe4dd10",
+    "transitive_dependencies": [
+      "cap-df7f531fd985",
+      "dom-8b2a7adbbfdb"
+    ],
+    "depth": 2,
+    "cycles_detected": []
+  }
+}

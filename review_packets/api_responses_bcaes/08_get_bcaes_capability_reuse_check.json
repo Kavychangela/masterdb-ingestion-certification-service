@@ -1,0 +1,11 @@
+{
+  "status_code": 200,
+  "body": {
+    "query": "Schema Compatibility Validation",
+    "exact_matches": [
+      "cap-df7f531fd985"
+    ],
+    "similar_matches": [],
+    "reuse_recommended": true
+  }
+}

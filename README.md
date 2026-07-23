@@ -14,6 +14,16 @@ API, on top of the same lifecycle/lineage/retrieval logic. Canonical
 schemas, ontology, and runtime reasoning remain out of scope and are owned
 by MDU (Nupur) — see `MDU_INTERFACE_CONTRACT.md`.
 
+This repo also hosts the BCAES Canonical Registry (`/bcaes/*`, ecosystem
+product/capability/service catalog + production convergence tracking +
+live reality snapshot) — see `BCAES_REGISTRY_ARCHITECTURE.md` for the full
+design; that document is the source of truth for it.
+
+It also hosts the BCAB/BCAES Canonical Document Repository
+(`/canonical-repository/*`) — versioned, access-controlled storage for
+the actual BCAB/BCAES documents (currently placeholder content, pending
+central population) — see `CANONICAL_REPOSITORY_ARCHITECTURE.md`.
+
 
 ## Scope
 

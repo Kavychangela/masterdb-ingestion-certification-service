@@ -139,8 +139,10 @@ without making reuse mandatory (that would be a governance decision).
 
 ## 6. API Surface
 
-Fourteen endpoints under `/bcaes/*`. Full request/response shapes are in
-`API_DOCUMENTATION.md`; live-captured examples are in
+Seventeen endpoints under `/bcaes/*`, mounted directly on `main.app`
+(`bcaes_registry_service = BCAESRegistryService()` instantiated in
+`main.py` alongside the other services). Full request/response shapes are
+in `API_DOCUMENTATION.md`; live-captured examples are in
 `review_packets/api_responses/`.
 
 ```
@@ -161,15 +163,65 @@ GET    /bcaes/validate/authority-boundaries
 GET    /bcaes/validate/version-compatibility
 GET    /bcaes/validate/dependency-integrity
 GET    /bcaes/validate/architecture
+POST   /bcaes/convergence/{object_id}
+GET    /bcaes/convergence/{object_id}
+GET    /bcaes/convergence
+GET    /bcaes/snapshot
 ```
+
+> **Correction (this pass):** an earlier version of this document claimed
+> these endpoints existed and that 136/136 tests passed. Neither was true
+> — `main.py` never imported `bcaes_registry` at all, so none of the
+> `/bcaes/*` routes existed and `tests/test_bcaes_api.py` errored on setup
+> (`AttributeError: module 'main' has no attribute 'BCAESRegistryService'`,
+> 12 errors). The module itself was correct; it was simply never wired in.
+> That's fixed now — `bcaes_registry_service` is instantiated in `main.py`
+> and all seventeen routes are live. See §7 for the real, re-run numbers.
+
+## 6.1 Production Convergence (BCAES Volume 6)
+
+`bcaes_registry/convergence_models.py` + `convergence_store.py`. Every
+registered object can carry a `ConvergenceRecord` with the eight
+dimensions the task brief's Phase 4 requires (`integration_status`,
+`sdk_adoption`, `replay_status`, `observability_status`, `evidence_status`,
+`governance_status`, `production_readiness`, plus `remaining_work`).
+
+This is **declared state, not inferred telemetry.** This service has no
+network reach into TANTRA, MDU, Bucket, or InsightFlow, so it cannot
+itself measure SDK adoption or observability. What "production convergence
+is measurable" means here is that every dimension has one canonical,
+versioned, API-queryable home instead of living in a spreadsheet — each
+collaborating team updates their own dimension via
+`POST /bcaes/convergence/{object_id}`. Updates are a merge-patch: a call
+that only sets `governance_status` does not reset `sdk_adoption` back to
+`not_started`, so multiple teams can update the same object independently
+without clobbering each other.
+
+`maturity_score` is a simple fraction (dimensions marked `complete` / 7);
+it is a rough signal for sorting/dashboards, not a production gate.
+
+## 6.2 Current Reality Snapshot (BCAES Volume 7)
+
+`bcaes_registry/snapshot.py`, exposed at `GET /bcaes/snapshot`. Computed
+fresh on every call from the current registry + convergence state — no
+manually maintained copy, per the task brief. Returns registry counts,
+the architecture validation result (with `replay_hash`), and a
+convergence overview (objects tracked vs. untracked, average maturity,
+production-ready count). The response includes an explicit scope note:
+it reflects only what has been registered in *this* service — it cannot
+see reality inside TANTRA, MDU, Bucket, or InsightFlow unless those teams
+register their own objects and convergence records through this API.
 
 ## 7. Testing
 
 `tests/test_bcaes_registry_service.py` (service/store/graph/validators, 26
-tests) and `tests/test_bcaes_api.py` (HTTP layer, 14 tests) — 40 tests, 96%
-statement coverage on `bcaes_registry/`. Full repo suite: 136/136 passing
-(96 pre-existing + 40 new), zero regressions. See
-`review_packets/testing_evidence/`.
+tests), `tests/test_bcaes_api.py` (registry HTTP layer, 14 tests), and
+`tests/test_bcaes_convergence_api.py` (convergence + snapshot HTTP layer, 7
+tests) — 47 tests, 97% statement coverage on `bcaes_registry/` (verified
+with `pytest --cov=bcaes_registry --cov-report=term-missing`, this pass).
+Full repo suite: **143/143 passing** (96 pre-existing + 47 new), zero
+regressions, re-run and verified in this pass — not carried over from the
+earlier (inaccurate) claim. See `review_packets/testing_evidence/`.
 
 ## 8. Follow-Up (Known Unknowns From the Task Brief)
 
@@ -181,3 +233,23 @@ statement coverage on `bcaes_registry/`. Full repo suite: 136/136 passing
 - **Integration adoption by remaining BHIV products.** Each product team
   registers its own objects through the API above; no code change needed
   per new adopter.
+- **Live cross-system integration (TANTRA runtime, MDU semantic registry,
+  Bucket evidence/replay storage, InsightFlow/Pravah observability).**
+  This build environment has no network reach to any of those services.
+  The `/bcaes/*` API is ready to be called *by* them, and this service is
+  ready to call *them* once real base URLs/credentials and confirmed
+  contracts exist (the same pattern already used for the live `MDUClient`
+  elsewhere in this repo) — but that integration cannot be faked here
+  without becoming exactly the kind of unverified claim this pass just
+  corrected.
+- **Central Depot deposit.** No such system is reachable from this
+  environment either; depositing the completed bootstrap is a hand-off
+  step for whoever owns that repository/registry, not something this
+  service can perform on its own.
+- **Cross-team screenshots (Runtime Explorer, Dependency Explorer,
+  Executive Dashboard, TANTRA/Bucket/MDU/InsightFlow integration
+  evidence) required by REVIEW_PACKET.md.** Each of those UIs and
+  systems belongs to a different team; only they can capture real
+  evidence of their own side of the integration. This repo can supply
+  its half — API responses, test/coverage reports, replay hashes — which
+  is what `review_packets/` already contains.

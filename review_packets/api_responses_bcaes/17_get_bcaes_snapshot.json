@@ -1,0 +1,37 @@
+{
+  "status_code": 200,
+  "body": {
+    "generated_at": "2026-07-22T08:49:38.406776+00:00",
+    "registries": {
+      "domain": 1,
+      "capability": 1,
+      "platform_service": 0,
+      "product": 1,
+      "program": 0,
+      "framework": 0,
+      "engine": 0,
+      "runtime": 0,
+      "integration": 0,
+      "knowledge_asset": 0,
+      "interface": 0
+    },
+    "total_objects": 3,
+    "architecture_validation": {
+      "passed": true,
+      "replay_hash": "5bf16c56df27180b2b332414e3c3eb4381c576e223aa3b1bf6a784cd04883db0",
+      "failing_checks": []
+    },
+    "convergence": {
+      "objects_registered": 3,
+      "objects_with_convergence_data": 1,
+      "objects_without_convergence_data": 2,
+      "untracked_object_ids": [
+        "cap-df7f531fd985",
+        "dom-8b2a7adbbfdb"
+      ],
+      "average_maturity_score": 0.1429,
+      "production_ready_count": 0
+    },
+    "scope_note": "Generated entirely from this service's own registry and convergence state. It does not reach into TANTRA, MDU, Bucket, or InsightFlow \u2014 cross-system reality requires each of those services to register and update their own objects through the /bcaes API."
+  }
+}

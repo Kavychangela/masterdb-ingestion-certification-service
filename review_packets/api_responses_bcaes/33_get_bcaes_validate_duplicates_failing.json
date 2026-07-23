@@ -1,1 +1,0 @@
-{"check":"duplicates","passed":false,"violations":[{"type":"duplicate_name","registry_type":"capability","name":"schema validation","ids":["cap-198f8afd4901","cap-b5dd81fc1c88"]}]}

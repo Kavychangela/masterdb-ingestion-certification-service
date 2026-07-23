@@ -1,0 +1,18 @@
+{
+  "status_code": 200,
+  "body": {
+    "integration_status": "in_progress",
+    "sdk_adoption": "not_started",
+    "replay_status": "not_started",
+    "observability_status": "not_started",
+    "evidence_status": "complete",
+    "governance_status": "not_started",
+    "production_readiness": "not_started",
+    "object_id": "prd-b6ed8fe4dd10",
+    "remaining_work": [
+      "confirm live MDU field names with Nupur"
+    ],
+    "note": null,
+    "updated_at": "2026-07-22T08:49:38.399967+00:00"
+  }
+}

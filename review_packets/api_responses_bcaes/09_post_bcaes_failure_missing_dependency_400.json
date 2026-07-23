@@ -1,0 +1,10 @@
+{
+  "status_code": 400,
+  "body": {
+    "error": {
+      "type": "http_error",
+      "message": "Dependency 'cap-ghost' does not exist in any registry.",
+      "path": "/bcaes/registries/platform_service/objects"
+    }
+  }
+}

@@ -1,15 +1,19 @@
-........................................                                 [100%]
+........................................................................ [ 50%]
+.......................................................................  [100%]
 ================================ tests coverage ================================
 _______________ coverage: platform linux, python 3.12.3-final-0 ________________
 
-Name                           Stmts   Miss  Cover   Missing
-------------------------------------------------------------
-bcaes_registry/__init__.py         0      0   100%
-bcaes_registry/graph.py           33      3    91%   45, 49-50
-bcaes_registry/models.py          70      0   100%
-bcaes_registry/service.py         46      1    98%   44
-bcaes_registry/store.py           73      2    97%   84, 128
-bcaes_registry/validators.py      82      6    93%   67, 84-85, 103, 106-107
-------------------------------------------------------------
-TOTAL                            304     12    96%
-40 passed in 3.44s
+Name                                   Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------
+bcaes_registry/__init__.py                 0      0   100%
+bcaes_registry/convergence_models.py      31      1    97%   23
+bcaes_registry/convergence_store.py       26      0   100%
+bcaes_registry/graph.py                   33      3    91%   45, 49-50
+bcaes_registry/models.py                  70      0   100%
+bcaes_registry/service.py                 57      1    98%   47
+bcaes_registry/snapshot.py                15      0   100%
+bcaes_registry/store.py                   73      2    97%   84, 128
+bcaes_registry/validators.py              82      6    93%   67, 84-85, 103, 106-107
+--------------------------------------------------------------------
+TOTAL                                    387     13    97%
+143 passed in 2.92s

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 
 
@@ -54,6 +54,21 @@ from services.tantra_interface_service import (
     TantraInterfaceService,
 )
 from services.validation_service import ValidationService
+
+from bcaes_registry.convergence_models import ConvergenceUpdateRequest as BCAESConvergenceUpdateRequest
+from bcaes_registry.models import RegisterObjectRequest as BCAESRegisterObjectRequest
+from bcaes_registry.models import RegistryType as BCAESRegistryType
+from bcaes_registry.models import UpdateObjectRequest as BCAESUpdateObjectRequest
+from bcaes_registry.service import BCAESRegistryService
+from bcaes_registry.store import DependencyNotFoundError as BCAESDependencyNotFoundError
+from bcaes_registry.store import ObjectNotFoundError as BCAESObjectNotFoundError
+
+from canonical_repository.models import DocumentCategory as CanonicalDocumentCategory
+from canonical_repository.models import PublishVersionRequest as CanonicalPublishVersionRequest
+from canonical_repository.models import RegisterDocumentRequest as CanonicalRegisterDocumentRequest
+from canonical_repository.service import CanonicalRepositoryService
+from canonical_repository.store import DocumentNotFoundError as CanonicalDocumentNotFoundError
+from canonical_repository.store import DuplicateCategoryError as CanonicalDuplicateCategoryError
 
 
 
@@ -138,6 +153,20 @@ tantra_interface_service = TantraInterfaceService(
 # Databases and MDU. See MASTERDB_SHARED_DATA_ARCHITECTURE.md.
 shared_data_registry_service = SharedDataRegistryService()
 shared_service_registry = build_shared_service_registry()
+
+# --- BCAES Canonical Registry (ecosystem bootstrap) ------------------------
+# Catalogs architectural objects (domains, capabilities, platform services,
+# products, programs, frameworks, engines, runtimes, integrations, knowledge
+# assets, interfaces). See BCAES_REGISTRY_ARCHITECTURE.md.
+bcaes_registry_service = BCAESRegistryService()
+
+# --- BCAB/BCAES Canonical Document Repository -------------------------------
+# Single source of truth for the BCAB and BCAES Volume 1-7 *documents*
+# themselves (distinct from the object registry above, which catalogs the
+# ecosystem's products/capabilities/services). See
+# CANONICAL_REPOSITORY_ARCHITECTURE.md. Content is placeholder until the
+# task owner populates it centrally.
+canonical_repository_service = CanonicalRepositoryService()
 shared_dependency_resolver = SharedDependencyResolver(shared_service_registry)
 
 
@@ -602,4 +631,309 @@ def resolve_shared_record_dependencies(service_name: str, record_id: str) -> dic
     try:
         return shared_dependency_resolver.resolve(service_name, record_id)
     except SharedRecordNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+# ---------------------------------------------------------------------------
+# BCAES Canonical Registry API — ecosystem bootstrap (BCAES Volumes 4-7)
+# ---------------------------------------------------------------------------
+
+
+def _bcaes_registry_type(registry_type: str) -> BCAESRegistryType:
+    try:
+        return BCAESRegistryType(registry_type)
+    except ValueError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown registry type '{registry_type}'.",
+        )
+
+
+@app.post("/bcaes/registries/{registry_type}/objects")
+def register_bcaes_object(registry_type: str, request: BCAESRegisterObjectRequest) -> dict:
+    rt = _bcaes_registry_type(registry_type)
+    try:
+        obj = bcaes_registry_service.register(rt, request)
+        return obj.model_dump(mode="json")
+    except BCAESDependencyNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/registries")
+def list_bcaes_registries() -> dict:
+    return {"registries": bcaes_registry_service.registry_summary()}
+
+
+@app.get("/bcaes/registries/{registry_type}/objects")
+def list_bcaes_registry_objects(registry_type: str) -> dict:
+    rt = _bcaes_registry_type(registry_type)
+    objects = bcaes_registry_service.list_registry(rt)
+    return {"registry_type": rt.value, "objects": [o.model_dump(mode="json") for o in objects]}
+
+
+@app.get("/bcaes/registries/{registry_type}/objects/{object_id}")
+def get_bcaes_object(registry_type: str, object_id: str) -> dict:
+    rt = _bcaes_registry_type(registry_type)
+    try:
+        return bcaes_registry_service.get(rt, object_id).model_dump(mode="json")
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.patch("/bcaes/registries/{registry_type}/objects/{object_id}")
+def update_bcaes_object(registry_type: str, object_id: str, request: BCAESUpdateObjectRequest) -> dict:
+    rt = _bcaes_registry_type(registry_type)
+    try:
+        obj = bcaes_registry_service.update(rt, object_id, request)
+        return obj.model_dump(mode="json")
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BCAESDependencyNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/bcaes/registries/{registry_type}/objects/{object_id}")
+def delete_bcaes_object(registry_type: str, object_id: str) -> dict:
+    rt = _bcaes_registry_type(registry_type)
+    try:
+        bcaes_registry_service.delete(rt, object_id)
+        return {"deleted": object_id}
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/search")
+def search_bcaes_registry(
+    q: Optional[str] = Query(default=None),
+    registry_type: Optional[str] = Query(default=None),
+    owner: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+) -> dict:
+    rt = _bcaes_registry_type(registry_type) if registry_type else None
+    results = bcaes_registry_service.search(query=q, registry_type=rt, owner=owner, status=status)
+    return {"count": len(results), "results": [o.model_dump(mode="json") for o in results]}
+
+
+@app.get("/bcaes/relationships/{object_id}")
+def get_bcaes_relationships(object_id: str) -> dict:
+    try:
+        return bcaes_registry_service.relationships(object_id)
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/dependencies/{object_id}")
+def get_bcaes_dependencies(object_id: str) -> dict:
+    try:
+        return bcaes_registry_service.transitive_dependencies(object_id)
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/capability-reuse-check")
+def bcaes_capability_reuse_check(name: str) -> dict:
+    return bcaes_registry_service.capability_reuse_check(name)
+
+
+@app.get("/bcaes/validate/classification")
+def validate_bcaes_classification() -> dict:
+    return bcaes_registry_service.validate_classification()
+
+
+@app.get("/bcaes/validate/duplicates")
+def validate_bcaes_duplicates() -> dict:
+    return bcaes_registry_service.detect_duplicates()
+
+
+@app.get("/bcaes/validate/ownership")
+def validate_bcaes_ownership() -> dict:
+    return bcaes_registry_service.validate_ownership()
+
+
+@app.get("/bcaes/validate/authority-boundaries")
+def validate_bcaes_authority_boundaries() -> dict:
+    return bcaes_registry_service.validate_authority_boundaries()
+
+
+@app.get("/bcaes/validate/version-compatibility")
+def validate_bcaes_version_compatibility() -> dict:
+    return bcaes_registry_service.validate_version_compatibility()
+
+
+@app.get("/bcaes/validate/dependency-integrity")
+def validate_bcaes_dependency_integrity() -> dict:
+    return bcaes_registry_service.validate_dependency_integrity()
+
+
+@app.get("/bcaes/validate/architecture")
+def validate_bcaes_architecture() -> dict:
+    return bcaes_registry_service.validate_architecture()
+
+
+# ---------------------------------------------------------------------------
+# BCAES Production Convergence (Volume 6) & Current Reality Snapshot (Volume 7)
+# ---------------------------------------------------------------------------
+
+
+@app.post("/bcaes/convergence/{object_id}")
+def upsert_bcaes_convergence(object_id: str, request: BCAESConvergenceUpdateRequest) -> dict:
+    try:
+        record = bcaes_registry_service.upsert_convergence(object_id, request)
+        return record.model_dump(mode="json")
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/convergence/{object_id}")
+def get_bcaes_convergence(object_id: str) -> dict:
+    try:
+        record = bcaes_registry_service.get_convergence(object_id)
+        return record.model_dump(mode="json") | {"maturity_score": record.maturity_score}
+    except BCAESObjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/bcaes/convergence")
+def list_bcaes_convergence() -> dict:
+    records = bcaes_registry_service.list_convergence()
+    return {
+        "count": len(records),
+        "records": [
+            r.model_dump(mode="json") | {"maturity_score": r.maturity_score} for r in records
+        ],
+    }
+
+
+@app.get("/bcaes/snapshot")
+def get_bcaes_snapshot() -> dict:
+    return bcaes_registry_service.generate_snapshot()
+
+
+# ---------------------------------------------------------------------------
+# BCAB/BCAES Canonical Document Repository
+# ---------------------------------------------------------------------------
+# `actor` and `roles` are self-reported by the caller (query params below)
+# rather than pulled from a real identity layer, because none exists
+# anywhere in this repo yet. Every document already declares read_roles /
+# write_roles (see canonical_repository/models.py::AccessPolicy) — nothing
+# here checks actor_roles against them yet. See
+# canonical_repository/service.py module docstring for exactly where that
+# enforcement plugs in once real auth exists.
+
+
+def _parse_roles(roles: Optional[str]) -> List[str]:
+    if not roles:
+        return []
+    return [r.strip() for r in roles.split(",") if r.strip()]
+
+
+@app.post("/canonical-repository/documents")
+def register_canonical_document(
+    request: CanonicalRegisterDocumentRequest,
+    actor: str = Query(...),
+    roles: Optional[str] = Query(default=None),
+) -> dict:
+    try:
+        doc = canonical_repository_service.register(request, actor, _parse_roles(roles))
+        return doc.model_dump(mode="json")
+    except CanonicalDuplicateCategoryError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/documents")
+def list_canonical_documents(
+    actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    docs = canonical_repository_service.list_all(actor, _parse_roles(roles))
+    return {"count": len(docs), "documents": [d.model_dump(mode="json") for d in docs]}
+
+
+@app.get("/canonical-repository/documents/{document_id}")
+def get_canonical_document(
+    document_id: str, actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    try:
+        return canonical_repository_service.get(document_id, actor, _parse_roles(roles)).model_dump(
+            mode="json"
+        )
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/by-category/{category}")
+def get_canonical_document_by_category(
+    category: str, actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    try:
+        cat = CanonicalDocumentCategory(category)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Unknown document category '{category}'.")
+    try:
+        return canonical_repository_service.get_by_category(cat, actor, _parse_roles(roles)).model_dump(
+            mode="json"
+        )
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/canonical-repository/documents/{document_id}/versions")
+def publish_canonical_document_version(
+    document_id: str,
+    request: CanonicalPublishVersionRequest,
+    actor: str = Query(...),
+    roles: Optional[str] = Query(default=None),
+) -> dict:
+    try:
+        version = canonical_repository_service.publish_version(
+            document_id, request, actor, _parse_roles(roles)
+        )
+        return version.model_dump(mode="json")
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/documents/{document_id}/versions")
+def list_canonical_document_versions(
+    document_id: str, actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    try:
+        versions = canonical_repository_service.version_history(document_id, actor, _parse_roles(roles))
+        return {"document_id": document_id, "versions": [v.model_dump(mode="json") for v in versions]}
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/documents/{document_id}/versions/{version_number}")
+def get_canonical_document_version(
+    document_id: str,
+    version_number: int,
+    actor: str = Query(...),
+    roles: Optional[str] = Query(default=None),
+) -> dict:
+    try:
+        version = canonical_repository_service.get_version(
+            document_id, version_number, actor, _parse_roles(roles)
+        )
+        return version.model_dump(mode="json")
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/documents/{document_id}/latest")
+def get_canonical_document_latest(
+    document_id: str, actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    try:
+        version = canonical_repository_service.latest_version(document_id, actor, _parse_roles(roles))
+        return version.model_dump(mode="json")
+    except CanonicalDocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/canonical-repository/documents/{document_id}/verify")
+def verify_canonical_document_chain(
+    document_id: str, actor: str = Query(...), roles: Optional[str] = Query(default=None)
+) -> dict:
+    try:
+        return canonical_repository_service.verify_chain(document_id, actor, _parse_roles(roles))
+    except CanonicalDocumentNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

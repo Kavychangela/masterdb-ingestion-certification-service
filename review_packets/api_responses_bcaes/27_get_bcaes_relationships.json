@@ -1,1 +1,0 @@
-{"id":"cap-198f8afd4901","name":"Schema Validation","registry_type":"capability","dependencies":[{"id":"dom-3a3090bf1d89","required_version":null}],"consumers":["psv-9f0eb2861461"]}
